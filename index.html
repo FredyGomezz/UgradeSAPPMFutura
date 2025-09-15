@@ -157,6 +157,12 @@
             color: white;
             position: relative;
             overflow: hidden;
+            cursor: pointer;
+            transition: margin-bottom 0.4s ease;
+        }
+
+        .phase:not(.collapsed) .phase-header {
+            margin-bottom: 20px;
         }
 
         .phase-header::before {
@@ -195,6 +201,19 @@
         .tasks-timeline {
             position: relative;
             padding-left: 20px;
+            transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.3s;
+            max-height: 2000px; /* suficiente para mostrar todas las tareas */
+            opacity: 1;
+            overflow: hidden;
+        }
+
+        .tasks-timeline.collapsed {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1);
+            padding: 0 !important;
+            margin: 0 !important;
+            opacity: 0;
         }
 
         .task {
@@ -2645,6 +2664,34 @@
                 updateSCurveMetrics();
             }
 
+            // --- COLAPSAR FASES ---
+            // Inicialmente colapsar todas las fases excepto la primera
+            const phases = document.querySelectorAll('.phase');
+            phases.forEach((phase, idx) => {
+                const tasksTimeline = phase.querySelector('.tasks-timeline');
+                if (tasksTimeline) {
+                    if (idx !== 0) {
+                        tasksTimeline.classList.add('collapsed');
+                        phase.classList.add('collapsed');
+                    }
+                }
+                // Click en el header para colapsar/expandir
+                const header = phase.querySelector('.phase-header');
+                if (header && tasksTimeline) {
+                    header.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const isCollapsed = tasksTimeline.classList.contains('collapsed');
+                        if (isCollapsed) {
+                            tasksTimeline.classList.remove('collapsed');
+                            phase.classList.remove('collapsed');
+                        } else {
+                            tasksTimeline.classList.add('collapsed');
+                            phase.classList.add('collapsed');
+                        }
+                    });
+                }
+            });
+
             // Event listeners
             calculateBtn.addEventListener('click', calculateProjectDates);
             startDateInput.addEventListener('change', calculateProjectDates);
@@ -2762,30 +2809,47 @@
                 }, 100);
             }
 
-            // Función para resaltar una tarea específica
+            // Función para resaltar una tarea específica y expandir su fase si está colapsada
             function highlightTask(taskNumber) {
                 // Remover resaltado previo
                 tasks.forEach(task => {
                     task.classList.remove('highlighted');
                 });
-                
-                // Encontrar y resaltar la tarea
+
+                // Encontrar la tarea
                 const targetTask = Array.from(tasks).find(task => {
                     const number = parseInt(task.dataset.taskNumber) || 0;
                     return number === taskNumber;
                 });
-                
-                if (targetTask) {
+
+                if (!targetTask) return;
+
+                // Buscar la fase y su timeline
+                const phase = targetTask.closest('.phase');
+                const tasksTimeline = phase ? phase.querySelector('.tasks-timeline') : null;
+
+                // Función para resaltar y hacer scroll
+                function doHighlightAndScroll() {
                     targetTask.classList.add('highlighted');
-                    targetTask.scrollIntoView({ 
-                        behavior: 'smooth', 
-                        block: 'center' 
+                    targetTask.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
                     });
-                    
-                    // Remover resaltado después de 3 segundos
                     setTimeout(() => {
                         targetTask.classList.remove('highlighted');
                     }, 3000);
+                }
+
+                // Si la fase está colapsada, expandirla antes de hacer scroll
+                if (tasksTimeline && tasksTimeline.classList.contains('collapsed')) {
+                    tasksTimeline.classList.remove('collapsed');
+                    phase.classList.remove('collapsed');
+                    const header = phase.querySelector('.phase-header');
+                    if (header) header.setAttribute('aria-expanded', 'true');
+                    // Esperar la transición antes de hacer scroll
+                    setTimeout(doHighlightAndScroll, 400);
+                } else {
+                    doHighlightAndScroll();
                 }
             }
             
