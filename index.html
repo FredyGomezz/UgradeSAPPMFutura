@@ -214,12 +214,21 @@
             margin-bottom: 40px;
             z-index: 10;
             text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
         }
 
         .logo-container img {
             width: 100%;
             height: auto;
             filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.5));
+            transition: all 0.3s ease;
+        }
+
+        /* Efecto de reflejo cuando la luz pasa sobre el logo */
+        .logo-container.reflected img {
+            filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.8)) 
+                    brightness(1.2);
         }
 
         .logo-text {
@@ -294,7 +303,6 @@
             height: 80px;
             border-radius: 50%;
             pointer-events: none;
-            z-index: 5;
             transform: translate(-50%, -50%);
             transition: all 0.1s ease-out;
         }
@@ -306,6 +314,7 @@
                 transparent 100%);
             box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
             filter: blur(2px);
+            z-index: 11; /* Mayor z-index para pasar por delante del logo */
         }
 
         #light2 {
@@ -317,6 +326,7 @@
             width: 60px;
             height: 60px;
             filter: blur(1.5px);
+            z-index: 9; /* Menor z-index para quedar detrás del logo */
         }
 
         /* Responsive */
@@ -384,8 +394,8 @@
     </div>
 
     <!-- Logo -->
-    <div class="logo-container">
-        <img src="logo_2025svg.svg" alt="G&N CONSULTORIA">
+    <div class="logo-container" id="logoContainer">
+        <img src="LogoGNCE2025.svg" alt="G&N CONSULTORIA">
     </div>
 
     <!-- Botones -->
@@ -413,6 +423,8 @@
         let mouseTimeout;
         let autoAnimationActive = true;
         let autoTime = 0;
+        const logoContainer = document.getElementById('logoContainer');
+        const logoImg = logoContainer.querySelector('img');
 
         // Seguimiento del mouse
         document.addEventListener('mousemove', (e) => {
@@ -426,7 +438,38 @@
                 isMouseMoving = false;
                 autoAnimationActive = true;
             }, 2000); // Después de 2 segundos sin movimiento, activa animación automática
+            
+            // Verificar si la luz está sobre el logo
+            checkLightOverLogo();
         });
+
+        // Función para verificar si la luz está sobre el logo
+        function checkLightOverLogo() {
+            const light1 = document.getElementById('light1');
+            const lightRect = {
+                x: parseFloat(light1.style.left) || window.innerWidth / 2,
+                y: parseFloat(light1.style.top) || window.innerHeight / 2,
+                width: 80,
+                height: 80
+            };
+            
+            const logoRect = logoContainer.getBoundingClientRect();
+            
+            // Detectar colisión entre la luz y el logo
+            const isOverlapping = !(
+                lightRect.x - lightRect.width / 2 > logoRect.right ||
+                lightRect.x + lightRect.width / 2 < logoRect.left ||
+                lightRect.y - lightRect.height / 2 > logoRect.bottom ||
+                lightRect.y + lightRect.height / 2 < logoRect.top
+            );
+            
+            // Aplicar o quitar el efecto de reflejo
+            if (isOverlapping) {
+                logoContainer.classList.add('reflected');
+            } else {
+                logoContainer.classList.remove('reflected');
+            }
+        }
 
         // Animación de las luces
         function animateLights() {
@@ -458,6 +501,11 @@
                 light.style.left = targetX + 'px';
                 light.style.top = targetY + 'px';
             });
+            
+            // Verificar si la luz está sobre el logo (también durante animación automática)
+            if (autoAnimationActive) {
+                checkLightOverLogo();
+            }
             
             requestAnimationFrame(animateLights);
         }
