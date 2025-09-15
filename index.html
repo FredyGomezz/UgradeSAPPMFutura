@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDT - SAP PM</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -12,2881 +12,460 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            background: radial-gradient(ellipse at center, #0f0f23 0%, #000000 100%);
             min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #2c3e50, #3498db);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            animation: fadeInDown 1s ease-out;
-        }
-
-        .header p {
-            font-size: 1.2rem;
-            opacity: 0.9;
-            animation: fadeInUp 1s ease-out 0.3s both;
-        }
-
-        .company-logo {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 20px;
-            animation: fadeInDown 1s ease-out 0.1s both;
-        }
-
-        .company-logo svg {
-            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
-            transition: transform 0.3s ease;
-        }
-
-        .company-logo svg:hover {
-            transform: scale(1.05);
-        }
-
-        .progress-summary {
-            margin-top: 20px;
-            padding: 20px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 15px;
-            animation: fadeInUp 1s ease-out 0.6s both;
-        }
-
-        .progress-bar-container {
-            background: rgba(255,255,255,0.2);
-            height: 20px;
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 10px 0;
-        }
-
-        .progress-bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #27ae60, #2ecc71);
-            width: 0%;
-            transition: width 1s ease-out;
-            border-radius: 10px;
-        }
-
-        .progress-text {
-            font-size: 1.1rem;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .progress-stats {
-            display: flex;
-            justify-content: space-around;
-            margin-top: 15px;
-            font-size: 0.9rem;
-        }
-
-        .stat-item {
-            text-align: center;
-        }
-
-        .stat-number {
-            font-size: 1.5rem;
-            font-weight: bold;
-            display: block;
-        }
-
-        .timeline-container {
-            padding: 40px;
             position: relative;
-        }
-
-        .week-scale {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 30px;
-            padding: 0 20px;
-            border-bottom: 2px solid #ecf0f1;
-            padding-bottom: 15px;
-        }
-
-        .week-marker {
-            text-align: center;
-            font-weight: bold;
-            color: #7f8c8d;
-            font-size: 0.9rem;
-        }
-
-        .phases-container {
-            position: relative;
-        }
-
-        .phase {
-            margin-bottom: 40px;
-            opacity: 0;
-            transform: translateY(30px);
-            animation: slideInUp 0.8s ease-out forwards;
-        }
-
-        .phase:nth-child(1) { animation-delay: 0.2s; }
-        .phase:nth-child(2) { animation-delay: 0.4s; }
-        .phase:nth-child(3) { animation-delay: 0.6s; }
-        .phase:nth-child(4) { animation-delay: 0.8s; }
-
-        .phase-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 20px;
-            padding: 15px 20px;
-            border-radius: 15px;
-            font-weight: bold;
-            font-size: 1.3rem;
-            color: white;
-            position: relative;
-            overflow: hidden;
-            cursor: pointer;
-            transition: margin-bottom 0.4s ease;
-        }
-
-        .phase:not(.collapsed) .phase-header {
-            margin-bottom: 20px;
-        }
-
-        .phase-header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
-        }
-
-        .phase-header:hover::before {
-            left: 100%;
-        }
-
-        .phase1 .phase-header { background: linear-gradient(135deg, #e74c3c, #c0392b); }
-        .phase2 .phase-header { background: linear-gradient(135deg, #3498db, #2980b9); }
-        .phase3 .phase-header { background: linear-gradient(135deg, #f39c12, #e67e22); }
-        .phase4 .phase-header { background: linear-gradient(135deg, #27ae60, #229954); }
-
-        .phase-number {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 15px;
-            font-size: 1.2rem;
-            font-weight: bold;
-        }
-
-        .tasks-timeline {
-            position: relative;
-            padding-left: 20px;
-            transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.3s;
-            max-height: 2000px; /* suficiente para mostrar todas las tareas */
-            opacity: 1;
-            overflow: hidden;
-        }
-
-        .tasks-timeline.collapsed {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1);
-            padding: 0 !important;
-            margin: 0 !important;
-            opacity: 0;
-        }
-
-        .task {
-            position: relative;
-            margin-bottom: 15px;
-            padding: 12px 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            border-left: 4px solid #bdc3c7;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .task:hover {
-            transform: translateX(10px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .task.completed {
-            background: linear-gradient(135deg, #d5f4e6, #c8e6c9);
-            border-left-color: #27ae60;
-            opacity: 0.9;
-        }
-
-        .task.completed .task-name {
-            text-decoration: line-through;
-            color: #27ae60;
-        }
-
-        .task.milestone {
-            border-left-color: #e74c3c;
-            background: linear-gradient(135deg, #fff5f5, #ffeaea);
-            position: relative;
-        }
-
-        .task.milestone.completed {
-            background: linear-gradient(135deg, #d5f4e6, #c8e6c9);
-            border-left-color: #27ae60;
-        }
-
-        .task.milestone::after {
-            content: '';
-        }
-
-        .task-content {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .task-checkbox {
-            width: 20px;
-            height: 20px;
-            border: 2px solid #bdc3c7;
-            border-radius: 4px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            flex-shrink: 0;
-        }
-
-        .task-checkbox:hover {
-            border-color: #3498db;
-            transform: scale(1.1);
-        }
-
-        .task-checkbox.checked {
-            background: #27ae60;
-            border-color: #27ae60;
-            color: white;
-        }
-
-        .task-checkbox.checked::after {
-            content: '✓';
-            font-weight: bold;
-            font-size: 14px;
-        }
-
-        .task-number {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #3498db, #2980b9);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 0.9rem;
-            flex-shrink: 0;
-            box-shadow: 0 2px 5px rgba(52, 152, 219, 0.3);
-            transition: all 0.3s ease;
-        }
-
-        .task.milestone .task-number {
-            background: linear-gradient(135deg, #e74c3c, #c0392b);
-            box-shadow: 0 2px 5px rgba(231, 76, 60, 0.3);
-        }
-
-        .task.completed .task-number {
-            background: linear-gradient(135deg, #27ae60, #229954);
-            box-shadow: 0 2px 5px rgba(39, 174, 96, 0.3);
-        }
-
-        .task:hover .task-number {
-            transform: scale(1.1);
-        }
-
-        .task.highlighted {
-            background: linear-gradient(135deg, #fff3cd, #ffeaa7) !important;
-            border-left-color: #f39c12 !important;
-            transform: translateX(15px) scale(1.02) !important;
-            box-shadow: 0 8px 25px rgba(243, 156, 18, 0.4) !important;
-            animation: highlightPulse 0.6s ease-out;
-        }
-
-        .task.highlighted .task-number {
-            background: linear-gradient(135deg, #f39c12, #e67e22) !important;
-            transform: scale(1.2) !important;
-            box-shadow: 0 4px 15px rgba(243, 156, 18, 0.5) !important;
-        }
-
-        @keyframes highlightPulse {
-            0% { transform: translateX(15px) scale(1.02); }
-            50% { transform: translateX(20px) scale(1.05); }
-            100% { transform: translateX(15px) scale(1.02); }
-        }
-
-        .task-info {
-            flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 5px;
-        }
-
-        .task-name {
-            font-weight: 500;
-            color: #2c3e50;
-        }
-
-        .task-details {
-            display: flex;
             align-items: center;
-            gap: 10px;
-            font-size: 0.85rem;
-        }
-
-        .task-hours {
-            background: #95a5a6;
+            justify-content: center;
             color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-weight: bold;
         }
 
-        .task-weight {
-            background: #f39c12;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-weight: bold;
-        }
-
-        .task-week {
-            background: #3498db;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: bold;
-            flex-shrink: 0;
-        }
-
-        .task-dates {
-            background: #9b59b6;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-weight: bold;
-            font-size: 0.8rem;
-        }
-
-        .task-start-date, .task-end-date {
-            font-weight: 500;
-        }
-
-        .milestone .task-week {
-            background: #e74c3c;
-            animation: glow 2s infinite alternate;
-        }
-
-        .week-indicator {
-            position: absolute;
+        /* Animación cinematográfica de fondo */
+        .background-animation {
+            position: fixed;
             top: 0;
             left: 0;
-            right: 0;
-            height: 3px;
-            background: #ecf0f1;
-            border-radius: 2px;
-        }
-
-        .progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #3498db, #2980b9);
-            border-radius: 2px;
-            width: 0%;
-            animation: progressFill 3s ease-out 1s forwards;
-        }
-
-        .legend {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin-top: 30px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 15px;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 500;
-        }
-
-        .legend-color {
-            width: 20px;
-            height: 20px;
-            border-radius: 4px;
-        }
-
-        .legend-milestone {
-            background: #e74c3c;
-        }
-
-        .legend-task {
-            background: #bdc3c7;
-        }
-
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes slideInUp {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: translateY(-50%) scale(1); }
-            50% { transform: translateY(-50%) scale(1.2); }
-        }
-
-        @keyframes glow {
-            from { box-shadow: 0 0 5px rgba(231, 76, 60, 0.5); }
-            to { box-shadow: 0 0 20px rgba(231, 76, 60, 0.8); }
-        }
-
-        @keyframes progressFill {
-            to { width: 100%; }
-        }
-
-        /* Estilos para la Curva S */
-        .s-curve-section {
-            margin-top: 40px;
-            padding: 30px;
-            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-            border-radius: 20px;
-            border-top: 4px solid #3498db;
-        }
-
-        .s-curve-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .s-curve-header h2 {
-            color: #2c3e50;
-            font-size: 1.8rem;
-            margin-bottom: 10px;
-        }
-
-        .s-curve-header p {
-            color: #7f8c8d;
-            font-size: 1rem;
-        }
-
-        .s-curve-container {
-            display: flex;
-            gap: 30px;
-            align-items: flex-start;
-        }
-
-        .s-curve-chart {
-            flex: 1;
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            position: relative;
-        }
-
-
-
-        .s-curve-metrics {
-            display: flex;
-            gap: 20px;
-            margin-top: 30px;
-            justify-content: center;
-        }
-
-        .metric-card {
-            background: white;
-            padding: 20px;
-            border-radius: 15px;
-            text-align: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            min-width: 150px;
-            transition: transform 0.3s ease;
-        }
-
-        .metric-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .metric-value {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 5px;
-        }
-
-        .metric-label {
-            font-size: 0.9rem;
-            color: #7f8c8d;
-            font-weight: 500;
-        }
-
-        .metric-card:nth-child(1) .metric-value {
-            color: #3498db;
-        }
-
-        .metric-card:nth-child(2) .metric-value {
-            color: #f39c12;
-        }
-
-        .metric-card:nth-child(3) .metric-value {
-            color: #27ae60;
-        }
-
-        /* Estilos para el selector de fecha */
-        .date-selector-section {
-            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 30px;
-            border: 2px solid #dee2e6;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .date-input-group {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .date-label {
-            font-weight: bold;
-            color: #2c3e50;
-            font-size: 1.1rem;
-            min-width: 200px;
-        }
-
-        .date-input {
-            padding: 10px 15px;
-            border: 2px solid #bdc3c7;
-            border-radius: 8px;
-            font-size: 1rem;
-            background: white;
-            transition: all 0.3s ease;
-            min-width: 150px;
-        }
-
-        .date-input:focus {
-            border-color: #3498db;
-            box-shadow: 0 0 10px rgba(52, 152, 219, 0.3);
-            outline: none;
-        }
-
-        .calculate-btn {
-            background: linear-gradient(135deg, #3498db, #2980b9);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 1rem;
-        }
-
-        .calculate-btn:hover {
-            background: linear-gradient(135deg, #2980b9, #21618c);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
-        }
-
-        .project-dates {
-            display: flex;
-            gap: 30px;
-            justify-content: space-around;
-            flex-wrap: wrap;
-        }
-
-        .date-info {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background: white;
-            padding: 15px 20px;
-            border-radius: 10px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-            min-width: 150px;
-            transition: transform 0.3s ease;
-        }
-
-        .date-info:hover {
-            transform: translateY(-3px);
-        }
-
-        .date-label-small {
-            font-size: 0.9rem;
-            color: #7f8c8d;
-            font-weight: 500;
-            margin-bottom: 5px;
-        }
-
-        .date-value {
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: #2c3e50;
-        }
-
-        /* Estilos para el calendario de tareas */
-        .calendar-section {
-            margin-top: 40px;
-            padding: 30px;
-            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-            border-radius: 20px;
-            border-top: 4px solid #9b59b6;
-        }
-
-        .calendar-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .calendar-header h2 {
-            color: #2c3e50;
-            font-size: 1.8rem;
-            margin-bottom: 10px;
-        }
-
-        .calendar-header p {
-            color: #7f8c8d;
-            font-size: 1rem;
-        }
-
-        .semester-calendar {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-            max-width: 100%;
-            overflow: hidden;
-        }
-
-        .month-container {
-            background: white;
-            border-radius: 15px;
-            padding: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
-            max-width: 100%;
-            min-width: 0;
-            overflow: hidden;
-        }
-
-        .month-container:hover {
-            transform: translateY(-3px);
-        }
-
-        .month-header {
-            text-align: center;
-            font-size: 1.3rem;
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #ecf0f1;
-        }
-
-        .calendar-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 1px;
             width: 100%;
-            max-width: 100%;
-        }
-
-        .calendar-day-header {
-            text-align: center;
-            font-weight: bold;
-            color: #7f8c8d;
-            padding: 6px 2px;
-            font-size: 0.75rem;
-            background: #f8f9fa;
-            border-radius: 3px;
-            min-height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .calendar-day {
-            aspect-ratio: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            color: #2c3e50;
-            background: #fff;
-            border: 1px solid #ecf0f1;
-            position: relative;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            padding: 2px;
-            min-height: 35px;
-            max-height: 45px;
+            height: 100%;
+            z-index: -1;
             overflow: hidden;
         }
 
-        .calendar-day:hover {
-            background: #f0f8ff;
-            transform: scale(1.05);
-        }
-
-        .calendar-day.other-month {
-            color: #bdc3c7;
-            background: #f8f9fa;
-        }
-
-        .calendar-day.has-task {
-            background: linear-gradient(135deg, #e8f5e8, #d4edda);
-            border-color: #27ae60;
-            font-weight: bold;
-        }
-
-        .calendar-day.has-milestone {
-            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
-            border-color: #f39c12;
-            font-weight: bold;
-        }
-
-        .calendar-day.has-task.has-milestone {
-            background: linear-gradient(135deg, #fff3cd, #e8f5e8, #ffeaa7);
-            border: 2px solid #f39c12;
-            box-shadow: 0 2px 8px rgba(243, 156, 18, 0.3);
-        }
-
-        .calendar-day.has-completed-task {
-            background: linear-gradient(135deg, #d4edda, #c3e6cb) !important;
-            border: 2px solid #28a745 !important;
-            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.4) !important;
-            font-weight: bold;
-        }
-
-        .task-indicator {
-            background: #3498db;
-            color: white;
-            border-radius: 50%;
-            width: 14px;
-            height: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.6rem;
-            font-weight: bold;
-            margin-top: 1px;
-            animation: bounce 0.5s ease-out;
-            flex-shrink: 0;
-        }
-
-        .milestone-indicator {
-            background: #e74c3c;
-            color: white;
-            border-radius: 50%;
-            width: 14px;
-            height: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.6rem;
-            font-weight: bold;
-            margin-top: 1px;
-            animation: pulse 2s infinite;
-            flex-shrink: 0;
-        }
-
-        .calendar-legend {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-            padding: 25px;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-            justify-items: start;
-            align-items: center;
-        }
-
-        .legend-calendar-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 500;
-            color: #2c3e50;
-            min-width: 200px;
-            justify-content: flex-start;
-        }
-
-        .legend-calendar-color {
-            width: 20px;
-            height: 20px;
+        /* Rayos de luz cinematográficos */
+        .light-ray {
+            position: absolute;
+            width: 8px;
+            height: 100%;
+            background: linear-gradient(to bottom, 
+                transparent 0%, 
+                rgba(255, 255, 255, 0.1) 10%,
+                rgba(135, 206, 250, 0.4) 20%, 
+                rgba(255, 255, 255, 0.8) 40%,
+                rgba(255, 255, 255, 1) 50%, 
+                rgba(255, 255, 255, 0.8) 60%,
+                rgba(135, 206, 250, 0.4) 80%, 
+                rgba(255, 255, 255, 0.1) 90%,
+                transparent 100%);
+            animation: lightSweep 8s linear infinite;
+            transform-origin: top;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.6), 
+                        0 0 40px rgba(135, 206, 250, 0.4),
+                        inset 0 0 10px rgba(255, 255, 255, 0.3);
             border-radius: 4px;
+            filter: blur(0.5px);
         }
 
-        .legend-task-start {
-            background: linear-gradient(135deg, #e8f5e8, #d4edda);
-            border: 2px solid #27ae60;
+        .light-ray:nth-child(1) { left: 20%; animation-delay: 0s; animation-duration: 4s; }
+        .light-ray:nth-child(2) { left: 50%; animation-delay: 1s; animation-duration: 5s; }
+        .light-ray:nth-child(3) { left: 80%; animation-delay: 2s; animation-duration: 4.5s; }
+
+        @keyframes lightSweep {
+            0% {
+                transform: translateX(-100vw) rotate(-15deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateX(100vw) rotate(15deg);
+                opacity: 0;
+            }
         }
 
-        .legend-milestone-start {
-            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
-            border: 2px solid #f39c12;
+        /* Formas flotantes intensas */
+        .floating-shape {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, 
+                rgba(255, 255, 255, 0.8) 0%,
+                rgba(135, 206, 250, 0.6) 30%,
+                rgba(255, 255, 255, 0.3) 60%,
+                rgba(135, 206, 250, 0.1) 100%);
+            animation: floatIntense 3s ease-in-out infinite;
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.4),
+                        0 0 60px rgba(135, 206, 250, 0.3),
+                        inset 0 0 20px rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            filter: blur(0.3px);
         }
 
-        @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-            40% { transform: translateY(-5px); }
-            60% { transform: translateY(-3px); }
+        .floating-shape:nth-child(11) { width: 40px; height: 40px; left: 25%; animation-delay: 0s; }
+        .floating-shape:nth-child(12) { width: 60px; height: 60px; left: 75%; animation-delay: 1.5s; }
+
+        @keyframes floatIntense {
+            0%, 100% {
+                transform: translateY(100vh) rotate(0deg) scale(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                transform: translateY(-20vh) rotate(180deg) scale(1.2);
+                opacity: 0.8;
+            }
+            90% {
+                opacity: 1;
+            }
         }
 
+        /* Niebla cinematográfica */
+        .fog {
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at center, 
+                rgba(255, 255, 255, 0.08) 0%,
+                rgba(135, 206, 250, 0.06) 20%,
+                rgba(255, 255, 255, 0.04) 40%,
+                rgba(135, 206, 250, 0.02) 60%,
+                transparent 80%);
+            animation: fogMove 20s ease-in-out infinite;
+            filter: blur(2px);
+            opacity: 0.7;
+        }
+
+        .fog:nth-child(21) {
+            top: -50%;
+            left: -50%;
+            animation-delay: 0s;
+            animation-duration: 4s;
+        }
+
+        .fog:nth-child(22) {
+            top: -30%;
+            left: -30%;
+            animation-delay: 1s;
+            animation-duration: 4s;
+        }
+
+        .fog:nth-child(23) {
+            top: -70%;
+            left: -70%;
+            animation-delay: 2s;
+            animation-duration: 4s;
+        }
+
+        @keyframes fogMove {
+            0%, 100% {
+                transform: translate(0, 0) scale(1);
+            }
+            33% {
+                transform: translate(-20px, -30px) scale(1.1);
+            }
+            66% {
+                transform: translate(20px, -10px) scale(0.9);
+            }
+        }
+
+        /* Partículas brillantes intensas */
+        .particle {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: radial-gradient(circle, 
+                rgba(255, 255, 255, 1) 0%,
+                rgba(255, 255, 255, 0.8) 30%,
+                rgba(135, 206, 250, 0.6) 60%,
+                transparent 100%);
+            border-radius: 50%;
+            animation: sparkleIntense 2s linear infinite;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.8),
+                        0 0 30px rgba(135, 206, 250, 0.6),
+                        0 0 45px rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .particle:nth-child(24) { left: 15%; animation-delay: 0s; }
+        .particle:nth-child(25) { left: 45%; animation-delay: 0.8s; }
+        .particle:nth-child(26) { left: 75%; animation-delay: 1.6s; }
+
+        @keyframes sparkleIntense {
+            0% {
+                transform: translateY(100vh) scale(0);
+                opacity: 0;
+            }
+            15% {
+                opacity: 1;
+                transform: scale(1.5);
+            }
+            85% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-10vh) scale(0);
+                opacity: 0;
+            }
+        }
+
+        /* Logo */
+        .logo-container {
+            width: 25%;
+            max-width: 300px;
+            margin-bottom: 40px;
+            z-index: 10;
+            text-align: center;
+        }
+
+        .logo-container img {
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.5));
+        }
+
+        .logo-text {
+            margin-top: 15px;
+            font-size: 1.8rem;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+            letter-spacing: 2px;
+        }
+
+        .logo-subtext {
+            margin-top: 5px;
+            font-size: 1.2rem;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+            letter-spacing: 1px;
+        }
+
+        /* Botones */
+        .buttons-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            z-index: 10;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-decoration: none;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+            min-width: 250px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(37, 117, 252, 0.5);
+        }
+
+        .btn-whatsapp {
+            background: linear-gradient(135deg, #25D366, #128C7E);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-whatsapp:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(37, 211, 102, 0.5);
+        }
+
+        /* Luces que siguen el cursor */
+        .cursor-light {
+            position: fixed;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 5;
+            transform: translate(-50%, -50%);
+            transition: all 0.1s ease-out;
+        }
+
+        #light1 {
+            background: radial-gradient(circle, 
+                rgba(255, 255, 255, 0.3) 0%,
+                rgba(135, 206, 250, 0.2) 50%,
+                transparent 100%);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+            filter: blur(2px);
+        }
+
+        #light2 {
+            background: radial-gradient(circle, 
+                rgba(135, 206, 250, 0.4) 0%,
+                rgba(255, 255, 255, 0.1) 60%,
+                transparent 100%);
+            box-shadow: 0 0 25px rgba(135, 206, 250, 0.2);
+            width: 60px;
+            height: 60px;
+            filter: blur(1.5px);
+        }
+
+        /* Responsive */
         @media (max-width: 768px) {
-            .header h1 { font-size: 2rem; }
-            .header p { font-size: 1rem; }
-            .timeline-container { padding: 20px; }
-            .week-scale { flex-wrap: wrap; gap: 10px; }
-            .task { padding: 10px 15px; }
-            .task-content { flex-direction: column; align-items: flex-start; gap: 8px; }
-            .legend { flex-direction: column; gap: 15px; }
-            
-            .date-input-group {
-                flex-direction: column;
-                gap: 10px;
+            .floating-shape {
+                display: none;
             }
             
-            .project-dates {
-                flex-direction: column;
-                gap: 10px;
+            .cursor-light {
+                width: 60px;
+                height: 60px;
             }
             
-            .date-info {
-                min-width: auto;
+            .logo-container {
+                width: 40%;
             }
             
-            .task-details {
-                flex-wrap: wrap;
-                gap: 5px;
-            }
-            
-            .s-curve-container {
-                flex-direction: column;
-                gap: 20px;
-            }
-            
-            .s-curve-metrics {
-                flex-direction: column;
-                gap: 15px;
-            }
-            
-            .s-curve-chart canvas {
-                width: 100% !important;
-                height: auto !important;
-            }
-            
-            /* Calendario responsive */
-            .semester-calendar {
-                grid-template-columns: 1fr;
-                gap: 15px;
-            }
-            
-            .month-container {
-                padding: 10px;
-                max-width: 100%;
-            }
-            
-            .calendar-day {
-                min-height: 30px;
-                max-height: 35px;
-                font-size: 0.75rem;
-            }
-            
-            .calendar-day-header {
-                font-size: 0.7rem;
-                padding: 4px 1px;
-                min-height: 18px;
-            }
-            
-            .task-indicator, .milestone-indicator {
-                width: 12px;
-                height: 12px;
-                font-size: 0.55rem;
-            }
-            
-            .calendar-legend {
-                grid-template-columns: 1fr;
-                gap: 15px;
-                padding: 20px;
-            }
-            
-            .legend-calendar-item {
-                min-width: auto;
-                justify-content: flex-start;
+            .btn {
+                padding: 12px 30px;
+                font-size: 1.1rem;
+                min-width: 200px;
             }
         }
-        
-        @media (max-width: 1200px) {
-            .semester-calendar {
-                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-                gap: 15px;
+
+        @media (max-width: 480px) {
+            .logo-container {
+                width: 60%;
+            }
+            
+            .btn {
+                padding: 10px 25px;
+                font-size: 1rem;
+                min-width: 180px;
+            }
+            
+            .logo-text {
+                font-size: 1.5rem;
+            }
+            
+            .logo-subtext {
+                font-size: 1rem;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Botón flotante de navegación -->
-    <div id="floatingNavBtn">
-        <span>☰</span>
-        <div id="floatingNavMenu">
-            <a href="#fechasSection">Fechas</a>
-            <a href="#tareasSection">Tareas</a>
-            <a href="#calendarioSection">Calendario</a>
-            <a href="#curvaSSection">Curva S</a>
-        </div>
+    <!-- Animación cinematográfica de fondo -->
+    <div class="background-animation">
+        <!-- Rayos de luz -->
+        <div class="light-ray"></div>
+        <div class="light-ray"></div>
+        <div class="light-ray"></div>
+        
+        <!-- Formas flotantes -->
+        <div class="floating-shape"></div>
+        <div class="floating-shape"></div>
+        
+        <!-- Niebla -->
+        <div class="fog"></div>
+        
+        <!-- Partículas brillantes -->
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
     </div>
+
+    <!-- Logo -->
+    <div class="logo-container">
+        <img src="logo_2025svg.svg" alt="G&N CONSULTORIA">
+    </div>
+
+    <!-- Botones -->
+    <div class="buttons-container">
+        <a href="intro.html" class="btn btn-primary">
+            <i class="fas fa-home"></i> Inicio
+        </a>
+        <a href="https://wa.me/573203284420" class="btn btn-whatsapp" target="_blank">
+            <i class="fab fa-whatsapp"></i> WhatsApp
+        </a>
+    </div>
+
+    <!-- Luces que siguen el cursor -->
+    <div class="cursor-light" id="light1"></div>
+    <div class="cursor-light" id="light2"></div>
+
+    <!-- Contenido principal -->
     <div class="container">
-        <div class="header">
-            <div class="company-logo">
-                <img src="logo_2025-removebg.png" alt="Logo G&N CE" class="company-logo" width="100">
-            </div>
-            <h1>Upgrade SAP PM - Futura Industrial</h1>
-            <p>Cronograma de Proyecto - Línea de Tiempo Interactiva</p>
-            <div class="progress-summary">
-                <div class="progress-text">Progreso General del Proyecto</div>
-                <div class="progress-bar-container">
-                    <div class="progress-bar-fill" id="overallProgress"></div>
-                </div>
-                <div class="progress-stats">
-                    <div class="stat-item">
-                        <span class="stat-number" id="completedTasks">0</span>
-                        <span>Tareas Completadas</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number" id="totalTasks">42</span>
-                        <span>Total de Tareas</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number" id="completedHours">0</span>
-                        <span>Horas Completadas</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number" id="totalHours">909</span>
-                        <span>Total de Horas</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="timeline-container">
-            <!-- Selector de Fecha del Proyecto -->
-            <div class="date-selector-section" id="fechasSection">
-                <div class="date-input-group">
-                    <label for="startDate" class="date-label">📅 Fecha de Inicio del Proyecto:</label>
-                    <input type="date" id="startDate" class="date-input" value="2024-07-29">
-                    <button id="calculateDates" class="calculate-btn">Calcular Fechas</button>
-                </div>
-                <div class="project-dates">
-                    <div class="date-info">
-                        <span class="date-label-small">Inicio:</span>
-                        <span id="projectStart" class="date-value">29 Jul 2024</span>
-                    </div>
-                    <div class="date-info">
-                        <span class="date-label-small">Fin Estimado:</span>
-                        <span id="projectEnd" class="date-value">Calculando...</span>
-                    </div>
-                    <div class="date-info">
-                        <span class="date-label-small">Duración:</span>
-                        <span id="projectDuration" class="date-value">Calculando...</span>
-                    </div>
-                    <div class="date-info">
-                        <span class="date-label-small">Última Actualización:</span>
-                        <span id="lastUpdate" class="date-value">Nunca</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="week-indicator">
-                <div class="progress-bar"></div>
-            </div>
-
-
-
-            <div class="phases-container" id="tareasSection">
-                <!-- Fase 1: Reconocimiento -->
-                <div class="phase phase1">
-                    <div class="phase-header">
-                        <div class="phase-number">1</div>
-                        <div>Fase 1: Reconocimiento</div>
-                    </div>
-                    <div class="tasks-timeline">
-                        <div class="task milestone" data-hours="2" data-weight="2.0" data-task-number="1">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">1</div>
-                                <div class="task-info">
-                                    <div class="task-name">Kick-off meeting</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">2h</span>
-                                        <span class="task-weight">2.0%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">🎯 Sem 31</div>
-                            </div>
-                        </div>
-                        <div class="task milestone" data-hours="24" data-weight="24.0" data-task-number="2">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">2</div>
-                                <div class="task-info">
-                                    <div class="task-name">Comprobar SAP PM - Actual</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">24h</span>
-                                        <span class="task-weight">24.0%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">🎯 Sem 31</div>
-                            </div>
-                        </div>
-                        <div class="task milestone" data-hours="48" data-weight="48.0" data-task-number="3">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">3</div>
-                                <div class="task-info">
-                                    <div class="task-name">Reconocer sistemas, subsistemas y equipos</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">48h</span>
-                                        <span class="task-weight">48.0%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">🎯 Sem 32</div>
-                            </div>
-                        </div>
-                        <div class="task milestone" data-hours="8" data-weight="8.0" data-task-number="4">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">4</div>
-                                <div class="task-info">
-                                    <div class="task-name">Reconocer data maestra existente</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">8h</span>
-                                        <span class="task-weight">8.0%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">🎯 Sem 33</div>
-                            </div>
-                        </div>
-                        <div class="task milestone" data-hours="16" data-weight="16.0" data-task-number="5">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">5</div>
-                                <div class="task-info">
-                                    <div class="task-name">Establecer el tipo de ajuste a aplicar</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">16h</span>
-                                        <span class="task-weight">16.0%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">🎯 Sem 34</div>
-                            </div>
-                        </div>
-                        <div class="task milestone" data-hours="2" data-weight="2.0" data-task-number="6">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">6</div>
-                                <div class="task-info">
-                                    <div class="task-name">Reporte de reconocimiento y avance</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">2h</span>
-                                        <span class="task-weight">2.0%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">🎯 Sem 34</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Fase 2: Adecuación o desarrollo -->
-                <div class="phase phase2">
-                    <div class="phase-header">
-                        <div class="phase-number">2</div>
-                        <div>Fase 2: Adecuación o Desarrollo</div>
-                    </div>
-                    <div class="tasks-timeline">
-                        <div class="task milestone" data-hours="88" data-weight="12.2" data-task-number="7">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">7</div>
-                                <div class="task-info">
-                                    <div class="task-name">Establecer - ajustar escenario lógico SAP PM</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">88h</span>
-                                        <span class="task-weight">12.2%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">🎯 Sem 34</div>
-                            </div>
-                        </div>
-                        <div class="task" data-hours="8" data-weight="1.1" data-task-number="8">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">8</div>
-                                <div class="task-info">
-                                    <div class="task-name">Sociedad</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">8h</span>
-                                        <span class="task-weight">1.1%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 36</div>
-                            </div>
-                        </div>
-                        <div class="task" data-hours="8" data-weight="1.1" data-task-number="9">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">9</div>
-                                <div class="task-info">
-                                    <div class="task-name">Centros</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">8h</span>
-                                        <span class="task-weight">1.1%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 36</div>
-                            </div>
-                        </div>
-                        <div class="task" data-hours="8" data-weight="1.1" data-task-number="10">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">10</div>
-                                <div class="task-info">
-                                    <div class="task-name">Centros de emplazamiento</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">8h</span>
-                                        <span class="task-weight">1.1%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 37</div>
-                            </div>
-                        </div>
-                        <div class="task" data-hours="8" data-weight="1.1" data-task-number="11">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">11</div>
-                                <div class="task-info">
-                                    <div class="task-name">Puestos de trabajo & turnos</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">8h</span>
-                                        <span class="task-weight">1.1%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 37</div>
-                            </div>
-                        </div>
-                        <div class="task" data-hours="8" data-weight="1.1" data-task-number="12">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">12</div>
-                                <div class="task-info">
-                                    <div class="task-name">Estrategias de mantenimiento</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">8h</span>
-                                        <span class="task-weight">1.1%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 38</div>
-                            </div>
-                        </div>
-                        <div class="task" data-hours="8" data-weight="1.1" data-task-number="13">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">13</div>
-                                <div class="task-info">
-                                    <div class="task-name">Contadores y puntos de medida</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">8h</span>
-                                        <span class="task-weight">1.1%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 38</div>
-                            </div>
-                        </div>
-                        <div class="task" data-hours="8" data-weight="1.1" data-task-number="14">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">14</div>
-                                <div class="task-info">
-                                    <div class="task-name">Grupo de planificación</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">8h</span>
-                                        <span class="task-weight">1.1%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 38</div>
-                            </div>
-                        </div>
-                        <div class="task" data-hours="5" data-weight="0.7" data-task-number="15">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">15</div>
-                                <div class="task-info">
-                                    <div class="task-name">Tipo de aviso</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">5h</span>
-                                        <span class="task-weight">0.7%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 39</div>
-                            </div>
-                        </div>
-                        <div class="task" data-hours="5" data-weight="0.7" data-task-number="16">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">16</div>
-                                <div class="task-info">
-                                    <div class="task-name">Tipo de orden</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">5h</span>
-                                        <span class="task-weight">0.7%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 39</div>
-                            </div>
-                        </div>
-                        <div class="task" data-hours="6" data-weight="0.8" data-task-number="17">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">17</div>
-                                <div class="task-info">
-                                    <div class="task-name">Tipo de plan</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">6h</span>
-                                        <span class="task-weight">0.8%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 39</div>
-                            </div>
-                        </div>
-                        <div class="task" data-hours="8" data-weight="1.1" data-task-number="18">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">18</div>
-                                <div class="task-info">
-                                    <div class="task-name">Taxonomía para estructura de UT/EQ</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">8h</span>
-                                        <span class="task-weight">1.1%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 40</div>
-                            </div>
-                        </div>
-                        <div class="task" data-hours="8" data-weight="1.1" data-task-number="19">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">19</div>
-                                <div class="task-info">
-                                    <div class="task-name">Generalidades y otras configuraciones</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">8h</span>
-                                        <span class="task-weight">1.1%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 40</div>
-                            </div>
-                        </div>
-                        <div class="task milestone" data-hours="80" data-weight="11.0" data-task-number="20">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">20</div>
-                                <div class="task-info">
-                                    <div class="task-name">Levantar estructura física de UT y EQ</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">80h</span>
-                                        <span class="task-weight">11.0%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 40</div>
-                            </div>
-                        </div>
-                        <div class="task" data-hours="80" data-weight="11.0" data-task-number="21">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">21</div>
-                                <div class="task-info">
-                                    <div class="task-name">Carga de taxonomía SAP PM</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">80h</span>
-                                        <span class="task-weight">11.0%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 42</div>
-                            </div>
-                        </div>
-                        <div class="task milestone" data-hours="16" data-weight="2.2" data-task-number="22">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">22</div>
-                                <div class="task-info">
-                                    <div class="task-name">Definir el alcance del mantenimiento preventivo</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">16h</span>
-                                        <span class="task-weight">2.2%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 44</div>
-                            </div>
-                        </div>
-                        <div class="task milestone" data-hours="100" data-weight="13.8" data-task-number="23">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">23</div>
-                                <div class="task-info">
-                                    <div class="task-name">Diseño & Elaboración de hojas de ruta</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">100h</span>
-                                        <span class="task-weight">13.8%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 45</div>
-                            </div>
-                        </div>
-                        <div class="task milestone" data-hours="130" data-weight="17.9" data-task-number="24">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">24</div>
-                                <div class="task-info">
-                                    <div class="task-name">Carga de hojas de ruta</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">130h</span>
-                                        <span class="task-weight">17.9%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 47</div>
-                            </div>
-                        </div>
-                        <div class="task milestone" data-hours="150" data-weight="20.7" data-task-number="25">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">25</div>
-                                <div class="task-info">
-                                    <div class="task-name">Carga - Elaboración de planes</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">150h</span>
-                                        <span class="task-weight">20.7%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 50</div>
-                            </div>
-                        </div>
-                        <div class="task" data-hours="16" data-weight="2.2" data-task-number="26">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">26</div>
-                                <div class="task-info">
-                                    <div class="task-name">Definir - comprobar formatos</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">16h</span>
-                                        <span class="task-weight">2.2%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 2</div>
-                            </div>
-                        </div>
-                        <div class="task" data-hours="16" data-weight="2.2" data-task-number="27">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">27</div>
-                                <div class="task-info">
-                                    <div class="task-name">Esquematizar Flujo de trabajo</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">16h</span>
-                                        <span class="task-weight">2.2%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 3</div>
-                            </div>
-                        </div>
-                        <div class="task" data-hours="16" data-weight="2.2" data-task-number="28">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">28</div>
-                                <div class="task-info">
-                                    <div class="task-name">Esquematizar Flujo de documentos</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">16h</span>
-                                        <span class="task-weight">2.2%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 3</div>
-                            </div>
-                        </div>
-                        <div class="task" data-hours="8" data-weight="1.1" data-task-number="29">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">29</div>
-                                <div class="task-info">
-                                    <div class="task-name">Evaluación del flujo de trabajo correctivo</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">8h</span>
-                                        <span class="task-weight">1.1%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 4</div>
-                            </div>
-                        </div>
-                        <div class="task" data-hours="8" data-weight="1.1" data-task-number="30">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">30</div>
-                                <div class="task-info">
-                                    <div class="task-name">Evaluación del flujo de trabajo preventivo</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">8h</span>
-                                        <span class="task-weight">1.1%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 4</div>
-                            </div>
-                        </div>
-                        <div class="task" data-hours="16" data-weight="2.2" data-task-number="31">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">31</div>
-                                <div class="task-info">
-                                    <div class="task-name">Evaluación de escenario & funcionalidad</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">16h</span>
-                                        <span class="task-weight">2.2%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 4</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Fase 3: Capacitación -->
-                <div class="phase phase3">
-                    <div class="phase-header">
-                        <div class="phase-number">3</div>
-                        <div>Fase 3: Capacitación</div>
-                    </div>
-                    <div class="tasks-timeline">
-                        <div class="task milestone" data-hours="48" data-weight="69.6" data-task-number="32">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">32</div>
-                                <div class="task-info">
-                                    <div class="task-name">Planeador de mantenimiento</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">48h</span>
-                                        <span class="task-weight">69.6%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 4</div>
-                            </div>
-                        </div>
-                        <div class="task milestone" data-hours="8" data-weight="11.6" data-task-number="33">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">33</div>
-                                <div class="task-info">
-                                    <div class="task-name">Jefe de mantenimiento</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">8h</span>
-                                        <span class="task-weight">11.6%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 5</div>
-                            </div>
-                        </div>
-                        <div class="task milestone" data-hours="8" data-weight="11.6" data-task-number="34">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">34</div>
-                                <div class="task-info">
-                                    <div class="task-name">Supervisores de mantenimiento</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">8h</span>
-                                        <span class="task-weight">11.6%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 5</div>
-                            </div>
-                        </div>
-                        <div class="task milestone" data-hours="5" data-weight="7.2" data-task-number="35">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">35</div>
-                                <div class="task-info">
-                                    <div class="task-name">Técnicos de mantenimiento</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">5h</span>
-                                        <span class="task-weight">7.2%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 5</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Fase 4: Entrega -->
-                <div class="phase phase4">
-                    <div class="phase-header">
-                        <div class="phase-number">4</div>
-                        <div>Fase 4: Entrega</div>
-                    </div>
-                    <div class="tasks-timeline">
-                        <div class="task" data-hours="2" data-weight="12.5" data-task-number="36">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">36</div>
-                                <div class="task-info">
-                                    <div class="task-name">Presentación Data Maestra</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">2h</span>
-                                        <span class="task-weight">12.5%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 5</div>
-                            </div>
-                        </div>
-                        <div class="task" data-hours="2" data-weight="12.5" data-task-number="37">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">37</div>
-                                <div class="task-info">
-                                    <div class="task-name">Presentación de Layout de planta</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">2h</span>
-                                        <span class="task-weight">12.5%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 5</div>
-                            </div>
-                        </div>
-                        <div class="task" data-hours="4" data-weight="25.0" data-task-number="38">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">38</div>
-                                <div class="task-info">
-                                    <div class="task-name">Presentación de herramientas adicionales</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">4h</span>
-                                        <span class="task-weight">25.0%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 5</div>
-                            </div>
-                        </div>
-                        <div class="task" data-hours="1" data-weight="6.3" data-task-number="39">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">39</div>
-                                <div class="task-info">
-                                    <div class="task-name">Entrega manual de mantenimiento</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">1h</span>
-                                        <span class="task-weight">6.3%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 5</div>
-                            </div>
-                        </div>
-                        <div class="task" data-hours="6" data-weight="37.5" data-task-number="40">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">40</div>
-                                <div class="task-info">
-                                    <div class="task-name">Mejora continua y valor agregado</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">6h</span>
-                                        <span class="task-weight">37.5%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 5</div>
-                            </div>
-                        </div>
-                        <div class="task milestone" data-hours="1" data-weight="6.3" data-task-number="41">
-                            <div class="task-content">
-                                <div class="task-checkbox"></div>
-                                <div class="task-number">41</div>
-                                <div class="task-info">
-                                    <div class="task-name">Reporte final de implementación</div>
-                                    <div class="task-details">
-                                        <span class="task-hours">1h</span>
-                                        <span class="task-weight">6.3%</span>
-                                    </div>
-                                </div>
-                                <div class="task-week">Sem 5</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="legend">
-                <div class="legend-item">
-                    <div class="legend-color legend-milestone"></div>
-                    <span>Hito del Proyecto 🎯</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color legend-task"></div>
-                    <span>Tarea Regular</span>
-                </div>
-            </div>
-
-            <!-- Calendario de Tareas -->
-            <div class="calendar-section" id="calendarioSection">
-                <div class="calendar-header">
-                    <h2>📅 Calendario del Proyecto</h2>
-                    <p>Vista mensual con tareas numeradas y fechas de inicio</p>
-                </div>
-                <div id="semesterCalendar" class="semester-calendar"></div>
-            </div>
-
-            <!-- Curva S -->
-            <div class="s-curve-section" id="curvaSSection">
-                <div class="s-curve-header">
-                    <h2>📈 Curva S - Seguimiento del Proyecto</h2>
-                    <p>Progreso planificado vs progreso real basado en horas acumuladas</p>
-                </div>
-                <div class="s-curve-container">
-                    <div class="s-curve-chart">
-                        <canvas id="sCurveCanvas" width="800" height="400"></canvas>
-                    </div>
-                </div>
-                <div class="s-curve-metrics">
-                    <div class="metric-card">
-                        <div class="metric-value" id="scheduleVariance">0%</div>
-                        <div class="metric-label">Variación de Cronograma</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-value" id="performanceIndex">0.00</div>
-                        <div class="metric-label">Índice de Rendimiento</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-value" id="projectStatus">En Tiempo</div>
-                        <div class="metric-label">Estado del Proyecto</div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
-    <style>
-        #floatingNavBtn {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            z-index: 9999;
-            background: linear-gradient(135deg, #3498db, #764ba2);
-            color: white;
-            border-radius: 50px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-            padding: 18px 22px;
-            cursor: pointer;
-            font-size: 2rem;
-            transition: background 0.3s;
-        }
-        #floatingNavBtn:hover {
-            background: linear-gradient(135deg, #764ba2, #3498db);
-        }
-        #floatingNavMenu {
-            display: none;
-            position: absolute;
-            bottom: 60px;
-            right: 0;
-            background: white;
-            color: #2c3e50;
-            border-radius: 15px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-            padding: 10px 0;
-            min-width: 180px;
-            flex-direction: column;
-            gap: 0;
-        }
-        #floatingNavMenu a {
-            display: block;
-            padding: 12px 24px;
-            color: #2c3e50;
-            text-decoration: none;
-            font-weight: 500;
-            border-bottom: 1px solid #eee;
-            transition: background 0.2s, color 0.2s;
-        }
-        #floatingNavMenu a:last-child {
-            border-bottom: none;
-        }
-        #floatingNavMenu a:hover {
-            background: #f0f8ff;
-            color: #3498db;
-        }
-    </style>
     <script>
-        // Botón flotante de navegación
-        document.addEventListener('DOMContentLoaded', function() {
-            const navBtn = document.getElementById('floatingNavBtn');
-            const navMenu = document.getElementById('floatingNavMenu');
-            navBtn.addEventListener('click', function(e) {
-                navMenu.style.display = navMenu.style.display === 'block' ? 'none' : 'block';
-            });
-            document.addEventListener('click', function(e) {
-                if (!navBtn.contains(e.target)) {
-                    navMenu.style.display = 'none';
-                }
-            });
-            // Scroll suave al hacer clic en los enlaces
-            navMenu.querySelectorAll('a').forEach(function(link) {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const target = document.querySelector(this.getAttribute('href'));
-                    if (target) {
-                        target.scrollIntoView({ behavior: 'smooth' });
-                        navMenu.style.display = 'none';
-                    }
-                });
-            });
+        let mouseX = window.innerWidth / 2;
+        let mouseY = window.innerHeight / 2;
+        let isMouseMoving = false;
+        let mouseTimeout;
+        let autoAnimationActive = true;
+        let autoTime = 0;
+
+        // Seguimiento del mouse
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            isMouseMoving = true;
+            autoAnimationActive = false;
+            
+            clearTimeout(mouseTimeout);
+            mouseTimeout = setTimeout(() => {
+                isMouseMoving = false;
+                autoAnimationActive = true;
+            }, 2000); // Después de 2 segundos sin movimiento, activa animación automática
         });
-    // ...existing code...
-        document.addEventListener('DOMContentLoaded', function() {
-            const tasks = document.querySelectorAll('.task');
-            const checkboxes = document.querySelectorAll('.task-checkbox');
-            const overallProgress = document.getElementById('overallProgress');
-            const completedTasksSpan = document.getElementById('completedTasks');
-            const completedHoursSpan = document.getElementById('completedHours');
-            
-            let completedTasks = 0;
-            let completedHours = 0;
-            const totalTasks = tasks.length;
-            const totalHours = 909;
 
-            // Sistema de fechas y almacenamiento
-            const startDateInput = document.getElementById('startDate');
-            const calculateBtn = document.getElementById('calculateDates');
-            const projectStartSpan = document.getElementById('projectStart');
-            const projectEndSpan = document.getElementById('projectEnd');
-            const lastUpdateSpan = document.getElementById('lastUpdate');
+        // Animación de las luces
+        function animateLights() {
+            const lights = document.querySelectorAll('.cursor-light');
             
-            // Configuración de horario laboral
-            const WORK_HOURS_PER_DAY = 8; // 8:00-17:00 con 1 hora de almuerzo
-            const WORK_DAYS = [1, 2, 3, 4, 5]; // Lunes a Viernes
-            
-            // Cargar datos guardados
-            function loadSavedData() {
-                const savedData = localStorage.getItem('sapProjectData');
-                if (savedData) {
-                    const data = JSON.parse(savedData);
+            lights.forEach((light, index) => {
+                let targetX, targetY;
+                
+                if (autoAnimationActive) {
+                    // Movimiento automático suave con diferentes radios y velocidades
+                    const radius = 80 + (index * 30);
+                    const speed = 0.008 + (index * 0.003);
+                    const offsetAngle = (index * Math.PI * 2) / lights.length;
                     
-                    // Restaurar fecha de inicio
-                    if (data.startDate) {
-                        startDateInput.value = data.startDate;
-                    }
+                    targetX = window.innerWidth / 2 + Math.cos(autoTime * speed + offsetAngle) * radius;
+                    targetY = window.innerHeight / 2 + Math.sin(autoTime * speed + offsetAngle) * radius;
                     
-                    // Restaurar tareas completadas
-                    if (data.completedTasks) {
-                        data.completedTasks.forEach(taskIndex => {
-                            if (checkboxes[taskIndex]) {
-                                checkboxes[taskIndex].classList.add('checked');
-                                tasks[taskIndex].classList.add('completed');
-                                completedTasks++;
-                                completedHours += parseInt(tasks[taskIndex].dataset.hours);
-                            }
-                        });
-                    }
-                    
-                    // Mostrar última actualización
-                    if (data.lastUpdate) {
-                        lastUpdateSpan.textContent = new Date(data.lastUpdate).toLocaleString('es-ES');
-                    }
-                }
-            }
-            
-            // Guardar datos
-            function saveData() {
-                const completedTasksArray = [];
-                checkboxes.forEach((checkbox, index) => {
-                    if (checkbox.classList.contains('checked')) {
-                        completedTasksArray.push(index);
-                    }
-                });
-                
-                const data = {
-                    startDate: startDateInput.value,
-                    completedTasks: completedTasksArray,
-                    lastUpdate: new Date().toISOString()
-                };
-                
-                localStorage.setItem('sapProjectData', JSON.stringify(data));
-                lastUpdateSpan.textContent = new Date().toLocaleString('es-ES');
-            }
-            
-            // Calcular siguiente día laboral
-            function getNextWorkDay(date) {
-                const nextDay = new Date(date);
-                nextDay.setDate(nextDay.getDate() + 1);
-                
-                while (!WORK_DAYS.includes(nextDay.getDay())) {
-                    nextDay.setDate(nextDay.getDate() + 1);
-                }
-                
-                return nextDay;
-            }
-            
-            // Calcular fecha de fin basada en horas
-            function calculateEndDate(startDate, hours) {
-                let currentDate = new Date(startDate);
-                let remainingHours = hours;
-                
-                while (remainingHours > 0) {
-                    if (WORK_DAYS.includes(currentDate.getDay())) {
-                        const hoursToday = Math.min(remainingHours, WORK_HOURS_PER_DAY);
-                        remainingHours -= hoursToday;
-                        
-                        if (remainingHours <= 0) {
-                            // Si terminamos las horas en este día, la fecha de fin es este día
-                            break;
-                        } else {
-                            // Si quedan horas, pasar al siguiente día laboral
-                            currentDate = getNextWorkDay(currentDate);
-                        }
-                    } else {
-                        currentDate = getNextWorkDay(currentDate);
-                    }
-                }
-                
-                return currentDate;
-            }
-            
-            // Calcular fecha de inicio de la siguiente tarea
-            function getNextTaskStartDate(taskEndDate, taskHours) {
-                // Si la tarea terminó en menos de 8 horas, la siguiente puede empezar el mismo día
-                if (taskHours < WORK_HOURS_PER_DAY) {
-                    return new Date(taskEndDate);
+                    autoTime += 0.5;
                 } else {
-                    // Si la tarea ocupó todo el día o más, empezar el siguiente día laboral
-                    return getNextWorkDay(taskEndDate);
-                }
-            }
-            
-            // Formatear fecha
-            function formatDate(date) {
-                return date.toLocaleDateString('es-ES', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric'
-                });
-            }
-            
-            // Formatear fecha para input (YYYY-MM-DD)
-            function formatDateForInput(date) {
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            }
-            
-            // Parsear fecha del input y asegurar consistencia
-            function parseInputDate(dateString) {
-                return new Date(dateString + 'T00:00:00');
-            }
-            
-            // Función para generar calendario semestral
-            function generateSemesterCalendar() {
-                const calendarContainer = document.getElementById('semesterCalendar');
-                const startDate = parseInputDate(startDateInput.value);
-                
-                // Calcular rango de 6 meses desde la fecha de inicio
-                const startMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
-                
-                calendarContainer.innerHTML = '';
-                
-                // Generar calendarios para cada mes
-                for (let month = 0; month < 6; month++) {
-                    const currentMonth = new Date(startMonth.getFullYear(), startMonth.getMonth() + month, 1);
-                    const monthContainer = createMonthCalendar(currentMonth);
-                    calendarContainer.appendChild(monthContainer);
+                    // Seguir el cursor con diferentes delays
+                    const delay = index * 0.1;
+                    const currentX = parseFloat(light.style.left) || mouseX;
+                    const currentY = parseFloat(light.style.top) || mouseY;
+                    
+                    targetX = mouseX + (currentX - mouseX) * Math.exp(-delay);
+                    targetY = mouseY + (currentY - mouseY) * Math.exp(-delay);
                 }
                 
-                // Agregar leyenda
-                const legend = document.createElement('div');
-                legend.className = 'calendar-legend';
-                legend.innerHTML = `
-                    <div class="legend-calendar-item">
-                        <div class="legend-calendar-color legend-task-start"></div>
-                        <span>Inicio de Tarea Regular</span>
-                    </div>
-                    <div class="legend-calendar-item">
-                        <div class="legend-calendar-color legend-milestone-start"></div>
-                        <span>Inicio de Hito 🎯</span>
-                    </div>
-                    <div class="legend-calendar-item">
-                        <div class="legend-calendar-color" style="background: linear-gradient(135deg, #d4edda, #c3e6cb); border: 2px solid #28a745;"></div>
-                        <span>Tarea Completada ✅</span>
-                    </div>
-                    <div class="legend-calendar-item">
-                        <div class="task-indicator">T#</div>
-                        <span>Número de Tarea</span>
-                    </div>
-                    <div class="legend-calendar-item">
-                        <div class="milestone-indicator">H#</div>
-                        <span>Número de Hito</span>
-                    </div>
-                `;
-                calendarContainer.appendChild(legend);
-            }
-            
-            // Función para crear calendario de un mes
-            function createMonthCalendar(date) {
-                const monthContainer = document.createElement('div');
-                monthContainer.className = 'month-container';
-                
-                const monthHeader = document.createElement('div');
-                monthHeader.className = 'month-header';
-                monthHeader.textContent = date.toLocaleDateString('es-ES', { 
-                    month: 'long', 
-                    year: 'numeric' 
-                }).replace(/^\w/, c => c.toUpperCase());
-                
-                const calendarGrid = document.createElement('div');
-                calendarGrid.className = 'calendar-grid';
-                
-                // Encabezados de días
-                const dayHeaders = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-                dayHeaders.forEach(day => {
-                    const dayHeader = document.createElement('div');
-                    dayHeader.className = 'calendar-day-header';
-                    dayHeader.textContent = day;
-                    calendarGrid.appendChild(dayHeader);
-                });
-                
-                // Obtener primer día del mes y días en el mes
-                const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
-                const startCalendar = new Date(firstDay);
-                startCalendar.setDate(startCalendar.getDate() - firstDay.getDay());
-                
-                // Generar 42 días (6 semanas)
-                for (let i = 0; i < 42; i++) {
-                    const currentDate = new Date(startCalendar);
-                    currentDate.setDate(startCalendar.getDate() + i);
-                    
-                    const dayElement = document.createElement('div');
-                    dayElement.className = 'calendar-day';
-                    dayElement.textContent = currentDate.getDate();
-                    
-                    if (currentDate.getMonth() !== date.getMonth()) {
-                        dayElement.classList.add('other-month');
-                    }
-                    
-                    // Verificar si hay tareas que inician en esta fecha
-                    const tasksInfo = getTasksStartingOnDate(currentDate);
-                    if (tasksInfo.length > 0) {
-                        // Determinar el tipo de día basado en las tareas
-                        const hasHitos = tasksInfo.some(task => task.isHito);
-                        const hasTareas = tasksInfo.some(task => !task.isHito);
-                        
-                        // Verificar si alguna tarea está completada
-                        const hasCompletedTasks = tasksInfo.some(task => {
-                            const taskElement = Array.from(tasks).find(t => 
-                                parseInt(t.dataset.taskNumber) === task.number
-                            );
-                            return taskElement && taskElement.classList.contains('completed');
-                        });
-                        
-                        if (hasCompletedTasks) {
-                            dayElement.classList.add('has-completed-task');
-                        } else {
-                            if (hasHitos) {
-                                dayElement.classList.add('has-milestone');
-                            }
-                            if (hasTareas) {
-                                dayElement.classList.add('has-task');
-                            }
-                        }
-                        
-                        // Crear indicadores para cada tarea
-                        tasksInfo.forEach((taskInfo, index) => {
-                            const indicator = document.createElement('div');
-                            indicator.className = taskInfo.isHito ? 'milestone-indicator' : 'task-indicator';
-                            indicator.textContent = taskInfo.number;
-                            indicator.style.cursor = 'pointer';
-                            
-                            // Posicionar múltiples indicadores
-                            if (index > 0) {
-                                indicator.style.marginTop = '2px';
-                            }
-                            
-                            // Agregar evento de click para resaltar la tarea
-                            indicator.addEventListener('click', function(e) {
-                                e.stopPropagation();
-                                highlightTask(taskInfo.number);
-                            });
-                            
-                            dayElement.appendChild(indicator);
-                        });
-                        
-                        // Crear tooltip con todas las tareas
-                        let tooltipText = `📅 ${formatDate(currentDate)}\n\n`;
-                        tasksInfo.forEach(taskInfo => {
-                            const icon = taskInfo.isHito ? '🎯 HITO' : '📋 TAREA';
-                            tooltipText += `${icon} ${taskInfo.number}: ${taskInfo.name}\n⏱️ ${taskInfo.hours}h - ${taskInfo.weight}%\n\n`;
-                        });
-                        dayElement.title = tooltipText.trim();
-                        
-                        // Hacer el día clickeable para mostrar detalles
-                        dayElement.style.cursor = 'pointer';
-                        dayElement.addEventListener('click', function() {
-                            showTaskDetails(tasksInfo, currentDate);
-                        });
-                    }
-                    
-                    calendarGrid.appendChild(dayElement);
-                }
-                
-                monthContainer.appendChild(monthHeader);
-                monthContainer.appendChild(calendarGrid);
-                
-                return monthContainer;
-            }
-            
-            // Función para obtener información de tareas que inician en una fecha específica
-            function getTasksStartingOnDate(targetDate) {
-                const startDate = parseInputDate(startDateInput.value);
-                let currentStartDate = new Date(startDate);
-                
-                // Crear un mapa de fechas de inicio que puede contener múltiples tareas
-                const taskStartDates = new Map();
-                
-                for (let i = 0; i < tasks.length; i++) {
-                    const task = tasks[i];
-                    const taskNumber = parseInt(task.dataset.taskNumber) || (i + 1);
-                    const isHito = task.classList.contains('milestone');
-                    const hours = parseInt(task.dataset.hours);
-                    const weight = parseFloat(task.dataset.weight);
-                    
-                    // Crear clave única para la fecha (YYYY-MM-DD)
-                    const dateKey = currentStartDate.toISOString().split('T')[0];
-                    
-                    // Agregar tarea a la fecha (permitir múltiples tareas por fecha)
-                    if (!taskStartDates.has(dateKey)) {
-                        taskStartDates.set(dateKey, []);
-                    }
-                    
-                    taskStartDates.get(dateKey).push({
-                        number: taskNumber,
-                        isHito: isHito,
-                        name: task.querySelector('.task-name').textContent,
-                        hours: hours,
-                        weight: weight,
-                        startDate: new Date(currentStartDate)
-                    });
-                    
-                    // Calcular siguiente fecha de inicio usando la nueva función
-                    const taskEndDate = calculateEndDate(currentStartDate, hours);
-                    currentStartDate = getNextTaskStartDate(taskEndDate, hours);
-                }
-                
-                // Buscar si hay tareas que inician en la fecha objetivo
-                const targetDateKey = targetDate.toISOString().split('T')[0];
-                return taskStartDates.get(targetDateKey) || [];
-            }
-
-            // Calcular todas las fechas del proyecto
-            function calculateProjectDates() {
-                const startDate = parseInputDate(startDateInput.value);
-                let currentStartDate = new Date(startDate);
-                
-                // Actualizar fecha de inicio del proyecto - usar formatDate para consistencia
-                projectStartSpan.textContent = formatDate(startDate);
-                
-                // Calcular fecha de fin del proyecto total
-                const projectEndDate = calculateEndDate(startDate, totalHours);
-                projectEndSpan.textContent = formatDate(projectEndDate);
-                
-                // Calcular duración del proyecto
-                const timeDiff = projectEndDate.getTime() - startDate.getTime();
-                const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
-                const monthsDiff = Math.ceil(daysDiff / 30);
-                
-                // Actualizar duración del proyecto
-                const durationElement = document.getElementById('projectDuration');
-                if (durationElement) {
-                    durationElement.textContent = `${monthsDiff} meses / ${daysDiff} días`;
-                }
-                
-                // Calcular fechas para cada tarea individual
-                tasks.forEach((task, index) => {
-                    const hours = parseInt(task.dataset.hours);
-                    const taskEndDate = calculateEndDate(currentStartDate, hours);
-                    
-                    // Buscar o crear elementos de fecha
-                    let taskDetails = task.querySelector('.task-details');
-                    let datesSpan = task.querySelector('.task-dates');
-                    
-                    if (!datesSpan) {
-                        datesSpan = document.createElement('span');
-                        datesSpan.className = 'task-dates';
-                        taskDetails.appendChild(datesSpan);
-                    }
-                    
-                    datesSpan.innerHTML = `
-                        <span class="task-start-date">${formatDate(currentStartDate)}</span> - 
-                        <span class="task-end-date">${formatDate(taskEndDate)}</span>
-                    `;
-                    
-                    // Calcular semana del proyecto basada en la fecha de inicio real
-                    const startOfYear = new Date(startDate.getFullYear(), 0, 1);
-                    const currentWeekOfYear = Math.ceil(((currentStartDate - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
-                    
-                    const taskWeekSpan = task.querySelector('.task-week');
-                    if (taskWeekSpan) {
-                        const isHito = task.classList.contains('milestone');
-                        taskWeekSpan.textContent = isHito ? `🎯 Sem ${currentWeekOfYear}` : `Sem ${currentWeekOfYear}`;
-                    }
-                    
-                    // Preparar fecha de inicio para la siguiente tarea usando la nueva función
-                    currentStartDate = getNextTaskStartDate(taskEndDate, hours);
-                });
-                
-                generateSCurveData(); // Regenerar datos de curva S después de calcular fechas
-                saveData();
-                generateSemesterCalendar(); // Generar calendario después de calcular fechas
-            }
-
-            // Datos para la curva S - progreso acumulativo por semana
-            let projectWeeks = [];
-            let plannedProgress = [];
-            let actualProgress = [];
-            
-            // Función para generar datos de curva S basados en las tareas
-            function generateSCurveData() {
-                const startDate = parseInputDate(startDateInput.value);
-                let currentStartDate = new Date(startDate);
-                let cumulativeHours = 0;
-                
-                projectWeeks = [];
-                plannedProgress = [];
-                actualProgress = [];
-                
-                // Calcular progreso planificado semana por semana
-                for (let i = 0; i < tasks.length; i++) {
-                    const task = tasks[i];
-                    const hours = parseInt(task.dataset.hours);
-                    
-                    // Calcular semana del año para esta tarea
-                    const startOfYear = new Date(currentStartDate.getFullYear(), 0, 1);
-                    const weekOfYear = Math.ceil(((currentStartDate - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
-                    
-                    cumulativeHours += hours;
-                    
-                    if (!projectWeeks.includes(weekOfYear)) {
-                        projectWeeks.push(weekOfYear);
-                        plannedProgress.push(cumulativeHours);
-                        actualProgress.push(0); // Inicializar progreso real en 0
-                    } else {
-                        // Si ya existe la semana, actualizar el progreso
-                        const weekIndex = projectWeeks.indexOf(weekOfYear);
-                        plannedProgress[weekIndex] = cumulativeHours;
-                    }
-                    
-                    // Calcular siguiente fecha de inicio usando la nueva función
-                    const taskEndDate = calculateEndDate(currentStartDate, hours);
-                    currentStartDate = getNextTaskStartDate(taskEndDate, hours);
-                }
-                
-                // Asegurar que tenemos al menos 20 puntos para una curva suave
-                if (projectWeeks.length < 20) {
-                    const totalWeeks = 25;
-                    const finalHours = plannedProgress[plannedProgress.length - 1] || totalHours;
-                    
-                    projectWeeks = [];
-                    plannedProgress = [];
-                    actualProgress = [];
-                    
-                    const startWeek = Math.ceil(((startDate - new Date(startDate.getFullYear(), 0, 1)) / 86400000 + new Date(startDate.getFullYear(), 0, 1).getDay() + 1) / 7);
-                    
-                    for (let i = 0; i < totalWeeks; i++) {
-                        projectWeeks.push(startWeek + i);
-                        // Curva S típica: lento al inicio, rápido en el medio, lento al final
-                        const progress = finalHours * (1 - Math.exp(-4 * i / totalWeeks)) * (i / totalWeeks);
-                        plannedProgress.push(Math.round(progress));
-                        actualProgress.push(0);
-                    }
-                }
-            }
-            
-            // Canvas para la curva S
-            const canvas = document.getElementById('sCurveCanvas');
-            const ctx = canvas.getContext('2d');
-            
-            // Función para dibujar la curva S
-            function drawSCurve() {
-                const width = canvas.width;
-                const height = canvas.height;
-                const padding = 80;
-                const chartWidth = width - 2 * padding;
-                const chartHeight = height - 2 * padding - 60; // Espacio para leyenda
-                
-                // Limpiar canvas
-                ctx.clearRect(0, 0, width, height);
-                
-                // Configurar estilos
-                ctx.font = '12px Arial';
-                ctx.textAlign = 'center';
-                
-                // Dibujar grid
-                ctx.strokeStyle = '#e0e0e0';
-                ctx.lineWidth = 1;
-                
-                // Grid vertical
-                for (let i = 0; i <= 10; i++) {
-                    const x = padding + (i * chartWidth / 10);
-                    ctx.beginPath();
-                    ctx.moveTo(x, padding);
-                    ctx.lineTo(x, padding + chartHeight);
-                    ctx.stroke();
-                }
-                
-                // Grid horizontal
-                for (let i = 0; i <= 10; i++) {
-                    const y = padding + (i * chartHeight / 10);
-                    ctx.beginPath();
-                    ctx.moveTo(padding, y);
-                    ctx.lineTo(padding + chartWidth, y);
-                    ctx.stroke();
-                }
-                
-                // Ejes
-                ctx.strokeStyle = '#333';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(padding, padding + chartHeight);
-                ctx.lineTo(padding + chartWidth, padding + chartHeight);
-                ctx.moveTo(padding, padding);
-                ctx.lineTo(padding, padding + chartHeight);
-                ctx.stroke();
-                
-                // Etiquetas del eje Y (Horas)
-                ctx.fillStyle = '#666';
-                ctx.textAlign = 'right';
-                ctx.font = '11px Arial';
-                for (let i = 0; i <= 10; i++) {
-                    const y = padding + chartHeight - (i * chartHeight / 10);
-                    const value = Math.round((i * totalHours / 10));
-                    ctx.fillText(value + 'h', padding - 10, y + 4);
-                }
-                
-                // Título del eje Y
-                ctx.save();
-                ctx.translate(20, padding + chartHeight / 2);
-                ctx.rotate(-Math.PI / 2);
-                ctx.fillStyle = '#2c3e50';
-                ctx.font = 'bold 12px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('Horas Acumuladas', 0, 0);
-                ctx.restore();
-                
-                // Etiquetas del eje X (Semanas)
-                ctx.textAlign = 'center';
-                ctx.font = '11px Arial';
-                ctx.fillStyle = '#666';
-                for (let i = 0; i < projectWeeks.length; i += Math.ceil(projectWeeks.length / 8)) {
-                    const x = padding + (i * chartWidth / (projectWeeks.length - 1));
-                    ctx.fillText('S' + projectWeeks[i], x, padding + chartHeight + 20);
-                }
-                
-                // Título del eje X
-                ctx.fillStyle = '#2c3e50';
-                ctx.font = 'bold 12px Arial';
-                ctx.fillText('Semanas del Proyecto', padding + chartWidth / 2, padding + chartHeight + 45);
-                
-                // Dibujar curva planificada
-                ctx.strokeStyle = '#3498db';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                for (let i = 0; i < plannedProgress.length; i++) {
-                    const x = padding + (i * chartWidth / (plannedProgress.length - 1));
-                    const y = padding + chartHeight - (plannedProgress[i] * chartHeight / totalHours);
-                    if (i === 0) {
-                        ctx.moveTo(x, y);
-                    } else {
-                        ctx.lineTo(x, y);
-                    }
-                }
-                ctx.stroke();
-                
-                // Puntos de referencia en curva planificada (cada 25%)
-                ctx.fillStyle = '#3498db';
-                for (let percent = 25; percent <= 100; percent += 25) {
-                    const targetHours = (percent / 100) * totalHours;
-                    let closestIndex = 0;
-                    let minDiff = Math.abs(plannedProgress[0] - targetHours);
-                    
-                    for (let i = 1; i < plannedProgress.length; i++) {
-                        const diff = Math.abs(plannedProgress[i] - targetHours);
-                        if (diff < minDiff) {
-                            minDiff = diff;
-                            closestIndex = i;
-                        }
-                    }
-                    
-                    const x = padding + (closestIndex * chartWidth / (plannedProgress.length - 1));
-                    const y = padding + chartHeight - (plannedProgress[closestIndex] * chartHeight / totalHours);
-                    
-                    // Punto
-                    ctx.beginPath();
-                    ctx.arc(x, y, 4, 0, 2 * Math.PI);
-                    ctx.fill();
-                    
-                    // Etiqueta con valor
-                    ctx.fillStyle = '#2c3e50';
-                    ctx.font = 'bold 10px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText(percent + '%', x, y - 12);
-                    ctx.fillText(Math.round(plannedProgress[closestIndex]) + 'h', x, y - 24);
-                    ctx.fillStyle = '#3498db';
-                }
-                
-                // Dibujar curva real
-                ctx.strokeStyle = '#27ae60';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                let lastActualIndex = 0;
-                for (let i = 0; i < actualProgress.length; i++) {
-                    if (actualProgress[i] > 0) {
-                        lastActualIndex = i;
-                    }
-                    const x = padding + (i * chartWidth / (actualProgress.length - 1));
-                    const y = padding + chartHeight - (actualProgress[i] * chartHeight / totalHours);
-                    if (i === 0) {
-                        ctx.moveTo(x, y);
-                    } else {
-                        ctx.lineTo(x, y);
-                    }
-                }
-                ctx.stroke();
-                
-                // Punto actual con información detallada
-                if (completedHours > 0) {
-                    const currentWeek = Math.min(lastActualIndex, actualProgress.length - 1);
-                    const x = padding + (currentWeek * chartWidth / (actualProgress.length - 1));
-                    const y = padding + chartHeight - (completedHours * chartHeight / totalHours);
-                    
-                    // Punto principal
-                    ctx.fillStyle = '#e74c3c';
-                    ctx.beginPath();
-                    ctx.arc(x, y, 8, 0, 2 * Math.PI);
-                    ctx.fill();
-                    
-                    // Borde blanco
-                    ctx.strokeStyle = '#fff';
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                    
-                    // Sombra del punto
-                    ctx.shadowColor = 'rgba(231, 76, 60, 0.5)';
-                    ctx.shadowBlur = 15;
-                    ctx.beginPath();
-                    ctx.arc(x, y, 8, 0, 2 * Math.PI);
-                    ctx.fill();
-                    ctx.shadowBlur = 0;
-                    
-                    // Información del punto actual
-                    ctx.fillStyle = '#2c3e50';
-                    ctx.font = 'bold 11px Arial';
-                    ctx.textAlign = 'center';
-                    const currentPercent = Math.round((completedHours / totalHours) * 100);
-                    ctx.fillText('ACTUAL', x, y - 25);
-                    ctx.fillText(currentPercent + '% (' + completedHours + 'h)', x, y - 12);
-                    ctx.fillText('Sem ' + projectWeeks[currentWeek], x, y + 20);
-                }
-                
-
-                
-                // Leyenda detallada en la parte inferior - Formato tabular
-                const legendY = padding + chartHeight + 70;
-                const legendItems = [
-                    { color: '#3498db', label: 'Progreso Planificado', style: 'line', description: 'Curva esperada según cronograma' },
-                    { color: '#27ae60', label: 'Progreso Real', style: 'line', description: 'Avance actual del proyecto' },
-                    { color: '#e74c3c', label: 'Punto Actual', style: 'point', description: 'Estado presente del proyecto' },
-                    { color: '#666', label: 'Hitos del Proyecto', style: 'dash', description: 'Referencias de progreso (25%, 50%, 75%, 100%)' }
-                ];
-                
-                // Fondo de la leyenda
-                const legendBoxY = legendY - 25;
-                const legendBoxHeight = 80;
-                ctx.fillStyle = 'rgba(248, 249, 250, 0.95)';
-                ctx.fillRect(padding - 20, legendBoxY, chartWidth + 40, legendBoxHeight);
-                
-                // Borde de la leyenda
-                ctx.strokeStyle = '#dee2e6';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(padding - 20, legendBoxY, chartWidth + 40, legendBoxHeight);
-                
-                // Título de la leyenda
-                ctx.fillStyle = '#2c3e50';
-                ctx.font = 'bold 14px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('LEYENDA DE LA CURVA S', padding + chartWidth / 2, legendY - 10);
-                
-                // Configuración de columnas para formato tabular
-                const legendStartX = padding + 20;
-                const columnWidth = (chartWidth - 40) / 2; // 2 columnas
-                const rowHeight = 25;
-                
-                legendItems.forEach((item, index) => {
-                    const col = index % 2; // 0 o 1 (columna izquierda o derecha)
-                    const row = Math.floor(index / 2); // 0 o 1 (fila superior o inferior)
-                    
-                    const x = legendStartX + (col * columnWidth);
-                    const y = legendY + 10 + (row * rowHeight);
-                    
-                    // Símbolo del elemento
-                    const symbolX = x + 15;
-                    
-                    if (item.style === 'line') {
-                        // Línea
-                        ctx.strokeStyle = item.color;
-                        ctx.lineWidth = 3;
-                        ctx.beginPath();
-                        ctx.moveTo(symbolX - 12, y);
-                        ctx.lineTo(symbolX + 12, y);
-                        ctx.stroke();
-                    } else if (item.style === 'point') {
-                        // Punto
-                        ctx.fillStyle = item.color;
-                        ctx.beginPath();
-                        ctx.arc(symbolX, y, 6, 0, 2 * Math.PI);
-                        ctx.fill();
-                        
-                        // Borde blanco del punto
-                        ctx.strokeStyle = '#fff';
-                        ctx.lineWidth = 2;
-                        ctx.stroke();
-                    } else if (item.style === 'dash') {
-                        // Línea punteada
-                        ctx.strokeStyle = item.color;
-                        ctx.lineWidth = 2;
-                        ctx.setLineDash([4, 4]);
-                        ctx.beginPath();
-                        ctx.moveTo(symbolX - 12, y);
-                        ctx.lineTo(symbolX + 12, y);
-                        ctx.stroke();
-                        ctx.setLineDash([]);
-                    }
-                    
-                    // Texto principal del elemento
-                    ctx.fillStyle = '#2c3e50';
-                    ctx.font = 'bold 12px Arial';
-                    ctx.textAlign = 'left';
-                    ctx.fillText(item.label, symbolX + 20, y + 2);
-                    
-                    // Descripción del elemento
-                    ctx.fillStyle = '#6c757d';
-                    ctx.font = '10px Arial';
-                    ctx.fillText(item.description, symbolX + 20, y + 15);
-                });
-                
-                // Título del gráfico
-                ctx.fillStyle = '#2c3e50';
-                ctx.font = 'bold 18px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('Curva S - Seguimiento del Progreso del Proyecto', width / 2, 25);
-                
-                // Subtítulo con información adicional
-                ctx.fillStyle = '#7f8c8d';
-                ctx.font = '12px Arial';
-                const totalTasksCompleted = completedTasks;
-                const totalTasksProject = tasks.length;
-                ctx.fillText(`${totalTasksCompleted}/${totalTasksProject} tareas completadas • ${completedHours}/${totalHours} horas • ${Math.round((completedHours/totalHours)*100)}% progreso`, width / 2, 45);
-            }
-            
-            // Función para actualizar métricas de la curva S
-            function updateSCurveMetrics() {
-                // Si no hay tareas completadas, usar valores por defecto
-                if (completedTasks === 0) {
-                    document.getElementById('scheduleVariance').textContent = '0.0%';
-                    document.getElementById('performanceIndex').textContent = '0.00';
-                    document.getElementById('projectStatus').textContent = 'No Iniciado';
-                    return;
-                }
-                
-                // Calcular el progreso esperado basado en la fecha actual vs fecha planificada
-                const startDate = parseInputDate(startDateInput.value);
-                const currentDate = new Date();
-                const projectDurationDays = Math.max(1, Math.ceil((currentDate - startDate) / (1000 * 60 * 60 * 24)));
-                
-                // Calcular duración total del proyecto en días laborales
-                const projectEndDate = calculateEndDate(startDate, totalHours);
-                const totalProjectDays = Math.ceil((projectEndDate - startDate) / (1000 * 60 * 60 * 24));
-                
-                // Progreso esperado basado en tiempo transcurrido
-                const timeProgress = Math.min(projectDurationDays / totalProjectDays, 1.0);
-                const expectedHours = totalHours * timeProgress;
-                
-                // Progreso real basado en horas completadas
-                const actualProgress = completedHours / totalHours;
-                const expectedProgress = expectedHours / totalHours;
-                
-                // Variación de cronograma: positivo = adelantado, negativo = retrasado
-                const scheduleVariance = expectedProgress > 0 ? 
-                    ((actualProgress - expectedProgress) / expectedProgress * 100) : 0;
-                
-                // Índice de rendimiento: >1 = adelantado, <1 = retrasado
-                const performanceIndex = expectedProgress > 0 ? 
-                    (actualProgress / expectedProgress) : 1.0;
-                
-                // Estado del proyecto basado en la variación
-                let projectStatus = 'En Tiempo';
-                if (scheduleVariance > 10) {
-                    projectStatus = 'Muy Adelantado';
-                } else if (scheduleVariance > 5) {
-                    projectStatus = 'Adelantado';
-                } else if (scheduleVariance < -10) {
-                    projectStatus = 'Muy Retrasado';
-                } else if (scheduleVariance < -5) {
-                    projectStatus = 'Retrasado';
-                }
-                
-                // Si completamos tareas antes de la fecha de inicio, estamos adelantados
-                if (currentDate < startDate && completedTasks > 0) {
-                    projectStatus = 'Adelantado';
-                    const earlyVariance = (completedHours / totalHours) * 100;
-                    document.getElementById('scheduleVariance').textContent = '+' + earlyVariance.toFixed(1) + '%';
-                } else {
-                    document.getElementById('scheduleVariance').textContent = 
-                        (scheduleVariance >= 0 ? '+' : '') + scheduleVariance.toFixed(1) + '%';
-                }
-                
-                document.getElementById('performanceIndex').textContent = performanceIndex.toFixed(2);
-                document.getElementById('projectStatus').textContent = projectStatus;
-                
-                // Colores según estado
-                const varianceElement = document.getElementById('scheduleVariance');
-                const statusElement = document.getElementById('projectStatus');
-                
-                if (scheduleVariance > 5 || (currentDate < startDate && completedTasks > 0)) {
-                    varianceElement.style.color = '#27ae60';
-                    statusElement.style.color = '#27ae60';
-                } else if (scheduleVariance < -5) {
-                    varianceElement.style.color = '#e74c3c';
-                    statusElement.style.color = '#e74c3c';
-                } else {
-                    varianceElement.style.color = '#3498db';
-                    statusElement.style.color = '#3498db';
-                }
-                
-                // Color del índice de rendimiento
-                const performanceElement = document.getElementById('performanceIndex');
-                if (performanceIndex > 1.05 || (currentDate < startDate && completedTasks > 0)) {
-                    performanceElement.style.color = '#27ae60';
-                } else if (performanceIndex < 0.95) {
-                    performanceElement.style.color = '#e74c3c';
-                } else {
-                    performanceElement.style.color = '#3498db';
-                }
-            }
-
-            // Función para actualizar el progreso
-            function updateProgress() {
-                const taskProgress = (completedTasks / totalTasks) * 100;
-                const hoursProgress = (completedHours / totalHours) * 100;
-                
-                overallProgress.style.width = hoursProgress + '%';
-                completedTasksSpan.textContent = completedTasks;
-                completedHoursSpan.textContent = completedHours;
-                
-                // Actualizar progreso real en la curva S
-                const currentWeekIndex = Math.min(Math.floor(completedHours / (totalHours / 25)), 24);
-                for (let i = 0; i <= currentWeekIndex; i++) {
-                    actualProgress[i] = Math.min(completedHours, plannedProgress[i]);
-                }
-                
-                // Redibujar curva S
-                drawSCurve();
-                updateSCurveMetrics();
-            }
-
-            // --- COLAPSAR FASES ---
-            // Inicialmente colapsar todas las fases excepto la primera
-            const phases = document.querySelectorAll('.phase');
-            phases.forEach((phase, idx) => {
-                const tasksTimeline = phase.querySelector('.tasks-timeline');
-                if (tasksTimeline) {
-                    if (idx !== 0) {
-                        tasksTimeline.classList.add('collapsed');
-                        phase.classList.add('collapsed');
-                    }
-                }
-                // Click en el header para colapsar/expandir
-                const header = phase.querySelector('.phase-header');
-                if (header && tasksTimeline) {
-                    header.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        const isCollapsed = tasksTimeline.classList.contains('collapsed');
-                        if (isCollapsed) {
-                            tasksTimeline.classList.remove('collapsed');
-                            phase.classList.remove('collapsed');
-                        } else {
-                            tasksTimeline.classList.add('collapsed');
-                            phase.classList.add('collapsed');
-                        }
-                    });
-                }
+                light.style.left = targetX + 'px';
+                light.style.top = targetY + 'px';
             });
-
-            // Event listeners
-            calculateBtn.addEventListener('click', calculateProjectDates);
-            startDateInput.addEventListener('change', calculateProjectDates);
-
-            // Agregar funcionalidad a los checkboxes
-            checkboxes.forEach((checkbox, index) => {
-                const task = tasks[index];
-                const hours = parseInt(task.dataset.hours);
-                
-                checkbox.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    
-                    if (this.classList.contains('checked')) {
-                        // Desmarcar
-                        this.classList.remove('checked');
-                        task.classList.remove('completed');
-                        completedTasks--;
-                        completedHours -= hours;
-                    } else {
-                        // Marcar como completado
-                        this.classList.add('checked');
-                        task.classList.add('completed');
-                        completedTasks++;
-                        completedHours += hours;
-                        
-                        // Efecto de celebración para hitos
-                        if (task.classList.contains('milestone')) {
-                            task.style.animation = 'pulse 0.6s ease-out';
-                            setTimeout(() => {
-                                task.style.animation = '';
-                            }, 600);
-                        }
-                    }
-                    
-                    updateProgress();
-                    generateSemesterCalendar(); // Actualizar calendario para mostrar tareas completadas
-                    saveData(); // Guardar cambios automáticamente
-                });
-            });
-
-            // Interactividad adicional
-            tasks.forEach(task => {
-                task.addEventListener('click', function(e) {
-                    if (e.target.classList.contains('task-checkbox')) return;
-                    
-                    // Efecto de click
-                    this.style.transform = 'translateX(15px) scale(1.02)';
-                    setTimeout(() => {
-                        this.style.transform = 'translateX(10px)';
-                    }, 200);
-                });
-
-                task.addEventListener('mouseenter', function() {
-                    if (this.classList.contains('completed')) {
-                        this.style.background = 'linear-gradient(135deg, #c8e6c9, #a5d6a7)';
-                    } else if (this.classList.contains('milestone')) {
-                        this.style.background = 'linear-gradient(135deg, #fff0f0, #ffe0e0)';
-                    } else {
-                        this.style.background = 'linear-gradient(135deg, #f0f8ff, #e6f3ff)';
-                    }
-                });
-
-                task.addEventListener('mouseleave', function() {
-                    if (this.classList.contains('completed')) {
-                        this.style.background = 'linear-gradient(135deg, #d5f4e6, #c8e6c9)';
-                    } else if (this.classList.contains('milestone')) {
-                        this.style.background = 'linear-gradient(135deg, #fff5f5, #ffeaea)';
-                    } else {
-                        this.style.background = '#f8f9fa';
-                    }
-                });
-            });
-
-            // Inicialización completa del sistema
-            function initializeSystem() {
-                loadSavedData(); // Cargar datos guardados primero
-                
-                // Asegurar que la fecha inicial se muestre correctamente
-                if (startDateInput.value) {
-                    const initialDate = parseInputDate(startDateInput.value);
-                    projectStartSpan.textContent = formatDate(initialDate);
-                }
-                
-                generateSCurveData(); // Generar datos de curva S
-                calculateProjectDates(); // Calcular fechas y generar calendario
-                updateProgress(); // Actualizar progreso
-                drawSCurve(); // Dibujar curva S
-                updateSCurveMetrics(); // Actualizar métricas
-            }
-
-            // Función para marcar algunas tareas como ejemplo (opcional)
-            function demoProgress() {
-                // Marcar las primeras 3 tareas como completadas para demostración
-                for (let i = 0; i < 3; i++) {
-                    if (checkboxes[i]) {
-                        setTimeout(() => {
-                            checkboxes[i].click();
-                        }, (i + 1) * 1000);
-                    }
-                }
-            }
-
-            // Hacer el canvas responsive
-            function resizeCanvas() {
-                const container = canvas.parentElement;
-                const containerWidth = container.clientWidth - 40; // padding
-                const aspectRatio = 2; // width/height ratio
-                
-                canvas.style.width = containerWidth + 'px';
-                canvas.style.height = (containerWidth / aspectRatio) + 'px';
-                
-                // Redibujar después del resize
-                setTimeout(() => {
-                    drawSCurve();
-                }, 100);
-            }
-
-            // Función para resaltar una tarea específica y expandir su fase si está colapsada
-            function highlightTask(taskNumber) {
-                // Remover resaltado previo
-                tasks.forEach(task => {
-                    task.classList.remove('highlighted');
-                });
-
-                // Encontrar la tarea
-                const targetTask = Array.from(tasks).find(task => {
-                    const number = parseInt(task.dataset.taskNumber) || 0;
-                    return number === taskNumber;
-                });
-
-                if (!targetTask) return;
-
-                // Buscar la fase y su timeline
-                const phase = targetTask.closest('.phase');
-                const tasksTimeline = phase ? phase.querySelector('.tasks-timeline') : null;
-
-                // Función para resaltar y hacer scroll
-                function doHighlightAndScroll() {
-                    targetTask.classList.add('highlighted');
-                    targetTask.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'center'
-                    });
-                    setTimeout(() => {
-                        targetTask.classList.remove('highlighted');
-                    }, 3000);
-                }
-
-                // Si la fase está colapsada, expandirla antes de hacer scroll
-                if (tasksTimeline && tasksTimeline.classList.contains('collapsed')) {
-                    tasksTimeline.classList.remove('collapsed');
-                    phase.classList.remove('collapsed');
-                    const header = phase.querySelector('.phase-header');
-                    if (header) header.setAttribute('aria-expanded', 'true');
-                    // Esperar la transición antes de hacer scroll
-                    setTimeout(doHighlightAndScroll, 400);
-                } else {
-                    doHighlightAndScroll();
-                }
-            }
             
-            // Función para mostrar detalles de tareas en una fecha
-            function showTaskDetails(tasksInfo, date) {
-                const details = tasksInfo.map(task => {
-                    const icon = task.isHito ? '🎯' : '📋';
-                    return `${icon} Tarea ${task.number}: ${task.name} (${task.hours}h)`;
-                }).join('\n');
-                
-                alert(`Tareas para ${formatDate(date)}:\n\n${details}`);
-            }
+            requestAnimationFrame(animateLights);
+        }
 
-            // Función para exportar datos del proyecto
-            function exportProjectData() {
-                const data = localStorage.getItem('sapProjectData');
-                if (data) {
-                    const blob = new Blob([data], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'sap-project-backup.json';
-                    a.click();
-                    URL.revokeObjectURL(url);
-                }
-            }
-
-            // Inicializar todo el sistema
-            initializeSystem();
-            
-            // Configurar canvas responsive
-            resizeCanvas();
-            window.addEventListener('resize', resizeCanvas);
-
-            // Descomentar la siguiente línea para ver la demo automática
-            // setTimeout(demoProgress, 3000);
-        });
+        // Iniciar animación
+        animateLights();
+        
+        console.log('Página de G&N CONSULTORIA cargada');
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97e2411240c6da6f',t:'MTc1NzcwOTk4NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
