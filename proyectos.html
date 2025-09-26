@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Proyectos - PDT Futura</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: radial-gradient(ellipse at center, #0f0f23 0%, #000000 100%);
+            color: white;
+            padding: 20px;
+            position: relative;
+            min-height: 100vh;
+        }
+        
+        /* Marca de agua del logo */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-15deg);
+            background-image: url('logo_2025web.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            width: 400px;
+            height: 200px;
+            opacity: 0.1;
+            pointer-events: none;
+            z-index: -1;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        #project-list {
+            list-style: none;
+            padding: 0;
+        }
+        #project-list li {
+            background: rgba(255, 255, 255, 0.1);
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .project-info {
+            flex: 1;
+        }
+        .project-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .project-action-btn {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .project-action-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            transform: scale(1.1);
+        }
+        .project-action-btn.admin-only {
+            display: none;
+        }
+        .project-action-btn.admin-only.show {
+            display: block;
+        }
+        .project-action-btn::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .project-action-btn:hover::after {
+            opacity: 1;
+        }
+        #project-list a {
+            color: #87cefa;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .admin-controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .btn {
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: bold;
+            text-decoration: none;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(37, 117, 252, 0.4);
+        }
+    </style>
+</head>
+<body>
+        <div class="container">
+            <h1>Proyectos Disponibles</h1>
+            
+            <div id="debug-info" style="background: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 5px; margin-bottom: 20px; font-size: 0.9em;">
+                <strong>Información de Debug:</strong><br>
+                <span id="user-info">Usuario: Cargando...</span><br>
+                <span id="connection-status">Conexión: Verificando...</span><br>
+                <span id="project-count">Proyectos encontrados: 0</span>
+            </div>
+            
+            <div id="error-message" style="display: none; background: rgba(255, 0, 0, 0.1); border: 1px solid rgba(255, 0, 0, 0.3); padding: 15px; border-radius: 5px; margin-bottom: 20px; text-align: center;">
+                <p id="error-text" style="color: #ff6b6b; margin: 0;"></p>
+                <button id="retry-btn" class="btn" style="margin-top: 10px; background: #ff6b6b;">Reintentar</button>
+            </div>
+            
+            <div id="admin-controls" style="display: none;">
+                <a href="GenerarProy.html" class="btn">Generar Nuevo Proyecto</a>
+            </div>
+
+            <ul id="project-list">
+                <!-- La lista de proyectos se cargará aquí desde Firebase -->
+                <li><a href="intro.html?id=default">Proyecto de Muestra (intro.html)</a></li>
+            </ul>
+        </div>    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBX1H8MaD6eoIo0jbpVRKO-fGtND3PthlI",
+            authDomain: "pdt-futura.firebaseapp.com",
+            projectId: "pdt-futura",
+            storageBucket: "pdt-futura.appspot.com",
+            messagingSenderId: "807986666483",
+            appId: "1:807986666483:web:4213a33d83132845c87931"
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        let currentUser = null;
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // User is signed in.
+                currentUser = user;
+                console.log('Usuario autenticado:', currentUser.email);
+                console.log('UID del usuario:', currentUser.uid);
+                
+                // Actualizar info de debug
+                document.getElementById('user-info').textContent = `Usuario: ${currentUser.email}`;
+                
+                // Verificar conexión a Firestore
+                console.log('Verificando conexión a Firestore...');
+                document.getElementById('connection-status').textContent = 'Conexión: Verificando...';
+                
+                db.collection('projects').limit(1).get()
+                    .then(snapshot => {
+                        console.log('Conexión a Firestore exitosa');
+                        document.getElementById('connection-status').textContent = 'Conexión: OK';
+                        hideError();
+                        
+                        // Check if user is admin
+                        if (currentUser.email === 'admin@gnce.com') {
+                            document.getElementById('admin-controls').style.display = 'block';
+                        }
+
+                        // Cargar la lista de proyectos desde Firestore
+                        loadProjects();
+                    })
+                    .catch(error => {
+                        console.error('Error de conexión a Firestore:', error);
+                        document.getElementById('connection-status').textContent = 'Conexión: Error';
+                        showError('Error de conexión a la base de datos. Verifica tu conexión a internet.');
+                    });
+
+            } else {
+                // No user is signed in.
+                console.log('Usuario no autenticado. Redirigiendo a login...');
+                document.getElementById('user-info').textContent = 'Usuario: No autenticado';
+                document.getElementById('connection-status').textContent = 'Conexión: N/A';
+                window.location.href = 'login.html';
+            }
+        });
+
+        function deleteProject(projectId, projectName) {
+            if (!currentUser || currentUser.email !== 'admin@gnce.com') {
+                alert('No tienes permisos para eliminar proyectos.');
+                return;
+            }
+
+            if (confirm(`¿Estás seguro de que quieres eliminar el proyecto "${projectName}"? Esta acción no se puede deshacer.`)) {
+                db.collection('projects').doc(projectId).delete()
+                    .then(() => {
+                        console.log('Proyecto eliminado exitosamente');
+                        alert('Proyecto eliminado exitosamente.');
+                        loadProjects(); // Recargar la lista
+                    })
+                    .catch(error => {
+                        console.error('Error al eliminar el proyecto:', error);
+                        alert('Error al eliminar el proyecto. Inténtalo de nuevo.');
+                    });
+            }
+        }
+
+        function backupProject(projectId, projectName) {
+            if (!currentUser || currentUser.email !== 'admin@gnce.com') {
+                alert('No tienes permisos para hacer copias de seguridad.');
+                return;
+            }
+
+            // Obtener los datos del proyecto
+            db.collection('projects').doc(projectId).get()
+                .then(doc => {
+                    if (doc.exists) {
+                        const projectData = doc.data();
+                        
+                        // Crear un objeto con la información del backup
+                        const backupData = {
+                            projectId: projectId,
+                            projectName: projectData.projectName,
+                            backupDate: new Date().toISOString(),
+                            data: projectData
+                        };
+
+                        // Convertir a JSON y descargar como archivo
+                        const dataStr = JSON.stringify(backupData, null, 2);
+                        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                        
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(dataBlob);
+                        link.download = `${projectName.replace(/[^a-zA-Z0-9]/g, '_')}_backup_${new Date().toISOString().split('T')[0]}.json`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        
+                        console.log('Copia de seguridad descargada exitosamente');
+                    } else {
+                        alert('Proyecto no encontrado.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al crear la copia de seguridad:', error);
+                    alert('Error al crear la copia de seguridad. Inténtalo de nuevo.');
+                });
+        }
+
+        function viewProject(projectId) {
+            // Redirigir a vistaProyecto.html con el ID del proyecto
+            window.location.href = `vistaProyecto.html?id=${projectId}`;
+        }
+
+        function downloadSummary(projectId) {
+            // Crear un iframe oculto para cargar la página y activar la descarga automática
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = `vistaProyecto.html?id=${projectId}&download=pdf`;
+            document.body.appendChild(iframe);
+            
+            // Remover el iframe después de un tiempo razonable
+            setTimeout(() => {
+                document.body.removeChild(iframe);
+            }, 10000); // 10 segundos deberían ser suficientes
+        }
+
+        function loadProjects() {
+            const projectList = document.getElementById('project-list');
+            
+            // Limpiar la lista actual (mantener solo el proyecto de muestra)
+            projectList.innerHTML = '<li><a href="intro.html?id=default">Proyecto de Muestra (intro.html)</a></li>';
+            
+            console.log('Intentando cargar proyectos desde Firestore...');
+            
+            // Obtener proyectos desde Firestore
+            db.collection('projects').get()
+                .then(querySnapshot => {
+                    console.log('Consulta exitosa. Número de documentos:', querySnapshot.size);
+                    document.getElementById('project-count').textContent = `Proyectos: ${querySnapshot.size}`;
+                    
+                    querySnapshot.forEach(doc => {
+                        const projectData = doc.data();
+                        const projectId = doc.id;
+                        
+                        console.log('Proyecto encontrado:', projectId, projectData.projectName);
+                        
+                        // Crear elemento de lista para el proyecto
+                        const li = document.createElement('li');
+                        
+                        // Información del proyecto
+                        const projectInfo = document.createElement('div');
+                        projectInfo.className = 'project-info';
+                        projectInfo.innerHTML = `
+                            <strong>${projectData.projectName}</strong><br>
+                            <small>Creado: ${formatDate(projectData.createdAt)} | 
+                            Última actualización: ${formatDate(projectData.lastUpdated)}</small>
+                        `;
+                        
+                        // Botones de acciones
+                        const projectActions = document.createElement('div');
+                        projectActions.className = 'project-actions';
+                        
+                        // Botón Ver Proyecto
+                        const viewBtn = document.createElement('button');
+                        viewBtn.className = 'project-action-btn';
+                        viewBtn.innerHTML = '<i class="fas fa-eye"></i>';
+                        viewBtn.setAttribute('data-tooltip', 'Ver Proyecto');
+                        viewBtn.onclick = () => viewProject(projectId);
+                        
+                        // Botón Descargar Resumen
+                        const downloadBtn = document.createElement('button');
+                        downloadBtn.className = 'project-action-btn';
+                        downloadBtn.innerHTML = '<i class="fas fa-download"></i>';
+                        downloadBtn.setAttribute('data-tooltip', 'Descargar Resumen PDF');
+                        downloadBtn.onclick = () => downloadSummary(projectId);
+                        
+                        // Botón Copia Local (solo admin)
+                        const backupBtn = document.createElement('button');
+                        backupBtn.className = 'project-action-btn admin-only';
+                        backupBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                        backupBtn.setAttribute('data-tooltip', 'Hacer Copia Local (Backup)');
+                        backupBtn.onclick = () => backupProject(projectId, projectData.projectName);
+                        
+                        // Botón Eliminar Proyecto (solo admin)
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'project-action-btn admin-only';
+                        deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                        deleteBtn.setAttribute('data-tooltip', 'Eliminar Proyecto');
+                        deleteBtn.onclick = () => deleteProject(projectId, projectData.projectName);
+                        
+                        // Agregar botones a las acciones
+                        projectActions.appendChild(viewBtn);
+                        projectActions.appendChild(downloadBtn);
+                        projectActions.appendChild(backupBtn);
+                        projectActions.appendChild(deleteBtn);
+                        
+                        // Agregar información y acciones al elemento de lista
+                        li.appendChild(projectInfo);
+                        li.appendChild(projectActions);
+                        
+                        // Agregar el elemento a la lista
+                        projectList.appendChild(li);
+                    });
+                    
+                    // Mostrar botones de admin si el usuario es admin
+                    if (currentUser && currentUser.email === 'admin@gnce.com') {
+                        document.querySelectorAll('.admin-only').forEach(btn => {
+                            btn.classList.add('show');
+                        });
+                    }
+                    
+                    console.log('Proyectos cargados exitosamente');
+                    document.getElementById('project-count').textContent = `Proyectos: ${querySnapshot.size} (cargados)`;
+                    
+                    hideError();
+                })
+                .catch(error => {
+                    console.error('Error al cargar proyectos:', error);
+                    console.error('Código de error:', error.code);
+                    console.error('Mensaje de error:', error.message);
+                    document.getElementById('project-count').textContent = 'Proyectos: Error';
+                    
+                    // Mostrar mensaje de error en la página
+                    showError(getErrorMessage(error));
+                });
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            errorText.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.style.display = 'none';
+        }
+
+        function formatDate(dateValue) {
+            if (!dateValue) return 'N/A';
+            
+            try {
+                // Si es un Timestamp de Firestore (tiene método toDate)
+                if (typeof dateValue.toDate === 'function') {
+                    return dateValue.toDate().toLocaleDateString('es-ES');
+                }
+                
+                // Si es un string o número, intentar convertirlo
+                if (typeof dateValue === 'string' || typeof dateValue === 'number') {
+                    const date = new Date(dateValue);
+                    return isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString('es-ES');
+                }
+                
+                // Si ya es un objeto Date
+                if (dateValue instanceof Date) {
+                    return dateValue.toLocaleDateString('es-ES');
+                }
+                
+                return 'N/A';
+            } catch (error) {
+                console.warn('Error formateando fecha:', error, dateValue);
+                return 'N/A';
+            }
+        }
+
+        // Event listener para el botón de reintentar
+        document.getElementById('retry-btn').addEventListener('click', () => {
+            hideError();
+            if (currentUser) {
+                loadProjects();
+            }
+        });
+    </script>
+</body>
+</html>

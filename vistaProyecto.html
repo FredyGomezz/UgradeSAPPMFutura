@@ -1,0 +1,3337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vista de Proyecto - PDT Futura</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        /* Estilos copiados de intro.html para consistencia visual */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #2c3e50, #3498db); color: white; padding: 30px; text-align: center; }
+        .header h1 { font-size: 2.5rem; margin-bottom: 10px; }
+        .header p { font-size: 1.2rem; opacity: 0.9; }
+        .company-logo { display: flex; justify-content: center; margin-bottom: 20px; }
+        .company-logo img { filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2)); }
+        .progress-summary { margin-top: 20px; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 15px; }
+        .progress-bar-container { background: rgba(255,255,255,0.2); height: 20px; border-radius: 10px; overflow: hidden; margin: 10px 0; }
+        .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #27ae60, #2ecc71); width: 0%; transition: width 1s ease-out; border-radius: 10px; position: relative; }
+        #progress-text { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.9); font-weight: bold; font-size: 16px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
+        .progress-text { font-size: 1.1rem; font-weight: bold; margin-bottom: 5px; }
+        .progress-stats { display: flex; justify-content: space-around; margin-top: 15px; font-size: 0.9rem; }
+        .stat-item { text-align: center; }
+        .stat-number { font-size: 1.5rem; font-weight: bold; display: block; }
+        .timeline-container { padding: 40px; }
+        .phases-container { position: relative; }
+        .phase { margin-bottom: 40px; }
+        .phase-header { display: flex; align-items: center; margin-bottom: 20px; padding: 15px 20px; border-radius: 15px; font-weight: bold; font-size: 1.3rem; color: white; cursor: pointer; }
+        .phase-header.phase1 { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .phase-header.phase2 { background: linear-gradient(135deg, #3498db, #2980b9); }
+        .phase-header.phase3 { background: linear-gradient(135deg, #f39c12, #e67e22); }
+        .phase-header.phase4 { background: linear-gradient(135deg, #27ae60, #229954); }
+        .phase-header.phase-default { background: linear-gradient(135deg, #95a5a6, #7f8c8d); }
+        .phase-number { width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; margin-right: 15px; font-size: 1.2rem; }
+        .phase-title { flex: 1; }
+        .phase-toggle { font-size: 1.2rem; transition: transform 0.3s ease; }
+        .phase-header.collapsed .phase-toggle { transform: rotate(-90deg); }
+        .tasks-timeline { padding-left: 20px; transition: all 0.3s ease; }
+        .phase.collapsed .tasks-timeline { display: none; }
+        .tasks-legend { margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 15px; border: 1px solid #dee2e6; }
+        .tasks-legend h3 { margin-bottom: 15px; color: #2c3e50; text-align: center; }
+        .legend-items { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .legend-item { display: flex; align-items: center; gap: 10px; }
+        .legend-color { width: 30px; height: 20px; border-radius: 5px; }
+        .legend-color.milestone { border-left: 4px solid #e74c3c; }
+        .legend-color.completed { border-left: 4px solid #28a745; }
+        .legend-symbol { font-size: 0.8rem; color: #34495e; background: #e9ecef; padding: 2px 6px; border-radius: 3px; }
+        .task-hours-example { background: #95a5a6; color: white; padding: 2px 8px; border-radius: 12px; font-weight: bold; font-size: 0.7rem; }
+        .task-dates-example { font-size: 0.7rem; color: #34495e; }
+        .tasks-timeline { padding-left: 20px; }
+        .task { position: relative; margin-bottom: 15px; padding: 12px 20px; background: #f8f9fa; border-radius: 10px; border-left: 4px solid #bdc3c7; }
+        .task.milestone { border-left-color: #e74c3c; background: linear-gradient(135deg, #fff5f5, #ffeaea); }
+        .task.completed {
+            background: linear-gradient(135deg, #d5f4e6, #c8e6c9);
+            border-left-color: #27ae60;
+            opacity: 0.9;
+        }
+        .task.completed .task-name {
+            text-decoration: line-through;
+            color: #27ae60;
+        }
+        .task-content { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+        .task-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+        .task-right { display: flex; flex-direction: row; align-items: center; gap: 15px; flex-shrink: 0; }
+        .task-name { font-weight: 500; color: #2c3e50; }
+        .task-details { display: flex; align-items: center; gap: 15px; font-size: 0.85rem; flex-wrap: wrap; }
+        .task-hours { background: #95a5a6; color: white; padding: 2px 8px; border-radius: 12px; font-weight: bold; white-space: nowrap; min-width: 40px; text-align: center; }
+        .task-dates { font-size: 0.8rem; color: #34495e; white-space: nowrap; }
+        .task-times { display: flex; gap: 15px; margin-top: 0; font-size: 0.8rem; flex-wrap: wrap; }
+        .task-time-label { display: flex; align-items: center; gap: 5px; color: #2c3e50; font-weight: 500; }
+        .task-start-time-display, .task-end-time-display { background: #f8f9fa; padding: 2px 6px; border-radius: 4px; border: 1px solid #dee2e6; font-family: monospace; font-weight: bold; color: #495057; }
+        .project-dates-interactive { padding: 20px; background: #f0f2f5; border-radius: 15px; margin-bottom: 30px; }
+        .project-dates-interactive h3 { margin-bottom: 15px; color: #2c3e50; }
+        .date-controls { display: flex; gap: 10px; align-items: center; margin-bottom: 15px; }
+        .date-controls input { padding: 8px; border: 1px solid #ccc; border-radius: 5px; }
+        .date-controls button { padding: 8px 15px; background-color: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .date-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 20px; }
+        .date-info p { background: #e9ecef; padding: 10px; border-radius: 5px; }
+        .project-config { margin-top: 0; padding: 15px; background: white; border-radius: 10px; border: 1px solid #dee2e6; }
+        .config-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 15px; }
+        .config-item { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 8px 0; }
+        .config-item label { font-weight: 500; color: #2c3e50; min-width: 280px; }
+        .config-item input[type="checkbox"] { width: 18px; height: 18px; }
+        .config-item input[type="date"] { padding: 6px; border: 1px solid #ccc; border-radius: 4px; flex: 1; max-width: 200px; }
+        .config-item input[type="time"] { padding: 6px; border: 1px solid #ccc; border-radius: 4px; flex: 1; max-width: 200px; }
+        .config-item input[type="number"] { padding: 6px; border: 1px solid #ccc; border-radius: 4px; flex: 1; max-width: 200px; }
+        .config-buttons { display: flex; gap: 10px; margin-top: 15px; }
+        .config-buttons button { padding: 8px 15px; background-color: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .holidays-list { margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px; }
+        .holidays-list h4 { margin-bottom: 10px; color: #2c3e50; }
+        #holidays-container { margin-bottom: 10px; }
+        .holiday-item { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+        .holiday-item input { padding: 4px; border: 1px solid #ccc; border-radius: 3px; }
+        .holiday-item button { padding: 2px 8px; background: #e74c3c; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; }
+        #add-holiday-btn { padding: 6px 12px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .s-curve-metrics { display: flex; gap: 20px; margin-top: 30px; justify-content: center; }
+        .metric-card { background: white; padding: 20px; border-radius: 15px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.1); min-width: 150px; transition: transform 0.3s ease; }
+        .metric-card:hover { transform: translateY(-5px); }
+        .metric-value { font-size: 1.8rem; font-weight: bold; color: #2c3e50; margin-bottom: 5px; }
+        .metric-label { font-size: 0.9rem; color: #7f8c8d; font-weight: 500; }
+        .metric-card:nth-child(1) .metric-value { color: #3498db; }
+        .metric-card:nth-child(2) .metric-value { color: #f39c12; }
+        .metric-card:nth-child(3) .metric-value { color: #27ae60; }
+        .s-curve-section, .calendar-section { margin-top: 40px; padding: 30px; background: linear-gradient(135deg, #f8f9fa, #e9ecef); border-radius: 20px; border-top: 4px solid #9b59b6; }
+        .calendar-timeline { position: relative; }
+        .timeline-header { margin-bottom: 20px; }
+        .timeline-dates { display: flex; justify-content: space-between; font-weight: bold; color: #2c3e50; }
+        .timeline-body { position: relative; height: 400px; border-left: 2px solid #bdc3c7; padding-left: 20px; }
+        .timeline-phase { margin-bottom: 30px; }
+        .phase-label { font-weight: bold; margin-bottom: 10px; color: #2c3e50; }
+        .phase-bar-container { position: relative; height: 40px; margin-bottom: 20px; }
+        .phase-bar { position: absolute; height: 30px; border-radius: 15px; top: 0; opacity: 0.7; }
+        .phase-bar.phase1 { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .phase-bar.phase2 { background: linear-gradient(135deg, #3498db, #2980b9); }
+        .phase-bar.phase3 { background: linear-gradient(135deg, #f39c12, #e67e22); }
+        .phase-bar.phase4 { background: linear-gradient(135deg, #27ae60, #229954); }
+        .task-bar { position: absolute; height: 20px; background: #95a5a6; border-radius: 10px; top: 35px; border: 2px solid #7f8c8d; overflow: hidden; }
+        .task-bar.completed { background: #27ae60; border-color: #229954; }
+        .task-bar-label { font-size: 0.7rem; color: white; padding: 2px 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .calendar-section { margin-top: 40px; padding: 30px; background: linear-gradient(135deg, #f8f9fa, #e9ecef); border-radius: 20px; border-top: 4px solid #9b59b6; }
+        .calendar-header { text-align: center; margin-bottom: 30px; }
+        .calendar-header h2 { color: #2c3e50; font-size: 1.8rem; margin-bottom: 10px; }
+        .calendar-header p { color: #7f8c8d; font-size: 1rem; }
+        .semester-calendar { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 30px; max-width: 100%; overflow: hidden; }
+        .month-container { background: white; border-radius: 15px; padding: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); transition: transform 0.3s ease; max-width: 100%; min-width: 0; overflow: hidden; }
+        .month-container:hover { transform: translateY(-3px); }
+        .month-header { text-align: center; font-size: 1.3rem; font-weight: bold; color: #2c3e50; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #ecf0f1; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; width: 100%; max-width: 100%; }
+        .calendar-day-header { text-align: center; font-weight: bold; color: #7f8c8d; padding: 6px 2px; font-size: 0.75rem; background: #f8f9fa; border-radius: 3px; min-height: 20px; display: flex; align-items: center; justify-content: center; }
+        .calendar-day { 
+            width: 100%; 
+            aspect-ratio: 1; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: flex-start; 
+            border-radius: 4px; 
+            font-size: 0.8rem; 
+            font-weight: 500; 
+            color: #2c3e50; 
+            background: #fff; 
+            border: 1px solid #ecf0f1; 
+            position: relative; 
+            cursor: pointer; 
+            transition: all 0.3s ease; 
+            padding: 2px; 
+            overflow: hidden; 
+            box-sizing: border-box;
+        }
+        .calendar-day:hover { 
+            background: #f0f8ff; 
+            transform: scale(1.05); 
+        }
+        .calendar-day.other-month { 
+            color: #bdc3c7; 
+            background: #f8f9fa; 
+        }
+        .calendar-day.has-task { 
+            background: linear-gradient(135deg, #e8f5e8, #d4edda); 
+            border-color: #27ae60; 
+            font-weight: bold; 
+        }
+        .calendar-day.has-milestone { 
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7); 
+            border-color: #f39c12; 
+            font-weight: bold; 
+        }
+        .calendar-day.has-task.has-milestone { 
+            background: linear-gradient(135deg, #fff3cd, #e8f5e8, #ffeaa7); 
+            border: 2px solid #f39c12; 
+            box-shadow: 0 2px 8px rgba(243, 156, 18, 0.3); 
+        }
+        .calendar-day.has-completed-task { 
+            background: linear-gradient(135deg, #d4edda, #c3e6cb) !important; 
+            border: 2px solid #28a745 !important; 
+            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.4) !important; 
+            font-weight: bold; 
+        }
+        .calendar-day.holiday { 
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb); 
+            border: 2px solid #dc3545; 
+            color: #721c24; 
+            font-weight: bold; 
+        }
+        .holiday-name {
+            font-size: 0.6rem;
+            font-weight: bold;
+            color: #721c24;
+            margin-top: 1px;
+            line-height: 1;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+        .day-number { 
+            font-weight: bold; 
+            margin-bottom: 1px; 
+            align-self: flex-start;
+        }
+        .calendar-day .task-indicator, 
+        .calendar-day .milestone-indicator {
+            margin: 1px;
+        }
+        .calendar-day {
+            flex-wrap: wrap;
+            justify-content: center;
+            min-height: 45px;
+            padding: 2px;
+        }
+        .task-indicator { 
+            background: #3498db; 
+            color: white; 
+            border-radius: 50%; 
+            width: 20px; 
+            height: 20px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 0.7rem; 
+            font-weight: bold; 
+            margin: 1px; 
+            animation: bounce 0.5s ease-out; 
+            flex-shrink: 0; 
+            cursor: pointer; 
+            position: relative; 
+            transition: all 0.2s ease;
+        }
+        .milestone-indicator { 
+            background: #e74c3c; 
+            color: white; 
+            border-radius: 50%; 
+            width: 20px; 
+            height: 20px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 0.7rem; 
+            font-weight: bold; 
+            margin: 1px; 
+            animation: pulse 2s infinite; 
+            flex-shrink: 0; 
+            cursor: pointer; 
+            position: relative; 
+            transition: all 0.2s ease;
+        }
+        
+        /* Tooltip personalizado */
+        .calendar-tooltip { 
+            position: fixed; 
+            background: rgba(0,0,0,0.9); 
+            color: white; 
+            padding: 8px 12px; 
+            border-radius: 6px; 
+            font-size: 14px; 
+            font-weight: 500;
+            z-index: 10000; 
+            pointer-events: none; 
+            opacity: 1; 
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+        
+        /* Modal para tareas del día */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        .modal-overlay.show { opacity: 1; visibility: visible; }
+        .modal-content { 
+            background: white; 
+            border-radius: 15px; 
+            padding: 25px; 
+            max-width: 500px; 
+            max-height: 70vh; 
+            overflow-y: auto; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3); 
+            transform: scale(0.9); 
+            transition: transform 0.3s ease; 
+        }
+        .modal-overlay.show .modal-content { transform: scale(1); }
+        .modal-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 20px; 
+            padding-bottom: 15px; 
+            border-bottom: 2px solid #ecf0f1; 
+        }
+        .modal-header h3 { 
+            font-size: 1.5rem; 
+            font-weight: bold; 
+            color: #2c3e50; 
+            margin: 0; 
+        }
+        .close-modal-btn { 
+            background: none; 
+            border: none; 
+            font-size: 1.5rem; 
+            cursor: pointer; 
+            color: #7f8c8d; 
+            padding: 5px; 
+            border-radius: 50%; 
+            transition: all 0.3s ease; 
+        }
+        .close-modal-btn:hover { background: #f8f9fa; color: #2c3e50; }
+        .modal-tasks-list { max-height: 50vh; overflow-y: auto; }
+        .modal-task-item { 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            padding: 15px; 
+            margin-bottom: 10px; 
+            background: #f8f9fa; 
+            border-radius: 10px; 
+            border-left: 4px solid #bdc3c7; 
+            cursor: pointer; 
+            transition: all 0.3s ease; 
+        }
+        .modal-task-item:hover { 
+            background: #e9ecef; 
+            transform: translateX(5px); 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1); 
+        }
+        .modal-task-item.completed { 
+            background: linear-gradient(135deg, #d5f4e6, #c8e6c9); 
+            border-left-color: #27ae60; 
+        }
+        .modal-task-item.milestone { 
+            background: linear-gradient(135deg, #fff5f5, #ffeaea); 
+            border-left-color: #e74c3c; 
+        }
+        .modal-task-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        .modal-task-number {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .modal-task-status {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+        }
+        .modal-task-info { flex: 1; }
+        .modal-task-name { 
+            font-weight: 600; 
+            color: #2c3e50; 
+            margin-bottom: 5px; 
+        }
+        .modal-task-details { 
+            font-size: 0.85rem; 
+            color: #7f8c8d;
+            display: flex;
+            justify-content: space-between;
+        }
+        .no-tasks {
+            text-align: center;
+            color: #7f8c8d;
+            font-style: italic;
+            padding: 20px;
+        }
+        
+        /* Animación de resaltado para tareas */
+        .task-highlight {
+            animation: highlight 3s ease-out;
+            border: 3px solid #3498db !important;
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb) !important;
+            transform: scale(1.02);
+            box-shadow: 0 0 25px rgba(52, 152, 219, 0.8) !important;
+            position: relative;
+            z-index: 10;
+        }
+        .task-highlight::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #3498db, #5dade2, #85c1e9, #3498db);
+            background-size: 400% 400%;
+            animation: borderGlow 2s ease-in-out infinite;
+            border-radius: 12px;
+            z-index: -1;
+        }
+        @keyframes highlight {
+            0% {
+                border-color: #3498db;
+                background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+                transform: scale(1.02);
+                box-shadow: 0 0 25px rgba(52, 152, 219, 0.8);
+            }
+            50% {
+                border-color: #2980b9;
+                background: linear-gradient(135deg, #bbdefb, #90caf9);
+                transform: scale(1.05);
+                box-shadow: 0 0 35px rgba(52, 152, 219, 1);
+            }
+            100% {
+                border-color: #bdc3c7;
+                background: inherit;
+                transform: scale(1);
+                box-shadow: none;
+            }
+        }
+        @keyframes borderGlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .calendar-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-top: 20px; padding: 25px; background: white; border-radius: 15px; box-shadow: 0 3px 10px rgba(0,0,0,0.1); justify-items: start; align-items: center; }
+        .legend-calendar-item { display: flex; align-items: center; gap: 10px; font-weight: 500; color: #2c3e50; min-width: 200px; justify-content: flex-start; }
+        .legend-calendar-color { width: 20px; height: 20px; border-radius: 4px; }
+        .legend-task-start { background: linear-gradient(135deg, #e8f5e8, #d4edda); border: 2px solid #27ae60; }
+        .legend-milestone-start { background: linear-gradient(135deg, #fff3cd, #ffeaa7); border: 2px solid #f39c12; }
+        @keyframes bounce { 0%, 20%, 50%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-5px); } 60% { transform: translateY(-3px); } }
+        @media (max-width: 768px) { 
+            .calendar-day { 
+                min-height: 40px; 
+                max-height: 45px; 
+                font-size: 0.75rem; 
+                padding: 1px;
+            } 
+            .calendar-day-header { 
+                font-size: 0.7rem; 
+                padding: 4px 1px; 
+                min-height: 18px; 
+            } 
+            .task-indicator, 
+            .milestone-indicator { 
+                width: 16px; 
+                height: 16px; 
+                font-size: 0.6rem; 
+                margin: 0.5px;
+            } 
+            .calendar-legend { 
+                grid-template-columns: 1fr; 
+                gap: 15px; 
+                padding: 20px; 
+            } 
+            .legend-calendar-item { 
+                min-width: auto; 
+                justify-content: flex-start; 
+            } 
+        }
+        @media (max-width: 1200px) { .semester-calendar { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; } }
+        #download-pdf { margin: 20px 10px; display: inline-block; padding: 10px 20px; background-color: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; }
+        #back-to-projects-btn { margin: 20px 10px; padding: 10px 20px; background-color: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; }
+        #logout-btn { margin: 20px 10px; padding: 10px 20px; background-color: #95a5a6; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; }
+
+        /* Estilos para el botón flotante de navegación */
+        #floatingNavBtn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 9999;
+            background: linear-gradient(135deg, #3498db, #764ba2);
+            color: white;
+            border-radius: 50px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            padding: 18px 22px;
+            cursor: pointer;
+            font-size: 2rem;
+            transition: background 0.3s;
+        }
+        #floatingNavBtn:hover {
+            background: linear-gradient(135deg, #764ba2, #3498db);
+        }
+        #floatingNavMenu {
+            display: none;
+            position: absolute;
+            bottom: 60px;
+            right: 0;
+            background: white;
+            color: #2c3e50;
+            border-radius: 15px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            padding: 8px 0;
+            min-width: 160px;
+            flex-direction: column;
+            gap: 0;
+        }
+        #floatingNavMenu a {
+            display: block;
+            padding: 6px 12px;
+            color: #2c3e50;
+            text-decoration: none;
+            font-weight: 400;
+            font-size: 13px;
+            border-bottom: 1px solid #eee;
+            transition: background 0.2s, color 0.2s;
+        }
+        #floatingNavMenu a:last-child {
+            border-bottom: none;
+        }
+        #floatingNavMenu a:hover {
+            background: #f0f8ff;
+            color: #3498db;
+        }
+
+        /* Estilos para botones de acción con ancho uniforme */
+        #project-actions button {
+            width: 200px;
+            height: 45px;
+            margin: 0 5px;
+            padding: 12px 20px;
+            box-sizing: border-box;
+            vertical-align: top;
+            line-height: 1.2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="project-container">
+        <div class="header">
+            <div class="company-logo">
+                <img src="logo_2025web.png" alt="Logo G&N CE" width="200">
+            </div>
+            <h1 id="project-name">Cargando proyecto...</h1>
+            <p>Cronograma de Proyecto - Línea de Tiempo Interactiva</p>
+            <div class="progress-summary">
+                <div class="progress-text">Progreso General del Proyecto</div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="overall-progress"><span id="progress-text">0%</span></div>
+                </div>
+                <div class="progress-stats">
+                    <div class="stat-item">
+                        <span class="stat-number" id="total-tasks">0</span>
+                        <span>Total de Tareas</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="total-hours">0</span>
+                        <span>Total de Horas</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="completed-tasks">0</span>
+                        <span>Tareas Completadas</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="completed-hours">0</span>
+                        <span>Horas Completadas</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="timeline-container">
+            <div class="project-dates-interactive" id="informacionProyecto">
+                <h3>Fecha de Inicio del Proyecto</h3>
+                <div class="project-config">
+                    <div class="config-item">
+                        <label for="start-date-input">Fecha de Inicio:</label>
+                        <input type="date" id="start-date-input">
+                    </div>
+                    <div class="config-item">
+                        <label for="include-saturdays">Excluir Sábados:</label>
+                        <input type="checkbox" id="include-saturdays">
+                    </div>
+                    <div class="config-item">
+                        <label for="include-sundays">Excluir Domingos:</label>
+                        <input type="checkbox" id="include-sundays">
+                    </div>
+                    <div class="config-item">
+                        <label for="include-holidays">Excluir Festivos del calendario laboral:</label>
+                        <input type="checkbox" id="include-holidays">
+                    </div>
+                    <div class="config-item">
+                        <label for="shift-start-time">Hora Inicio Turno:</label>
+                        <input type="time" id="shift-start-time" value="08:00">
+                    </div>
+                    <div class="config-item">
+                        <label for="shift-end-time">Hora Fin Turno:</label>
+                        <input type="time" id="shift-end-time" value="17:00">
+                    </div>
+                    <div class="config-item">
+                        <label for="shift-break-hours">Horas Descanso Turno:</label>
+                        <input type="number" id="shift-break-hours" min="0" max="8" step="0.5" value="1">
+                    </div>
+                    <div class="holidays-list" id="holidays-list" style="display: none;">
+                        <h4>Festivos Seleccionados:</h4>
+                        <div id="holidays-container"></div>
+                        <button type="button" id="add-holiday-btn">Agregar Festivo</button>
+                    </div>
+                    <div class="config-buttons">
+                        <button id="recalculate-dates-btn">Aplicar Cambios</button>
+                    </div>
+                </div>
+                <div class="date-info">
+                    <p><strong>Inicio:</strong> <span id="project-start-date">--</span></p>
+                    <p><strong>Fin Estimado:</strong> <span id="project-end-date">--</span></p>
+                    <p><strong>Duración:</strong> <span id="project-duration">--</span> días</p>
+                    <p><strong>Última Actualización:</strong> <span id="project-last-update">--</span></p>
+                </div>
+            </div>
+            <div id="phases-container" class="phases-container">
+                <!-- Las fases y tareas se cargarán aquí -->
+            </div>
+            
+            <!-- Leyenda de tareas -->
+            <div class="tasks-legend">
+                <h3>Leyenda de Tareas</h3>
+                <div class="legend-items">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #f8f9fa; border-left: 4px solid #bdc3c7;"></div>
+                        <span>Tarea Regular</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color milestone" style="background: linear-gradient(135deg, #fff5f5, #ffeaea); border-left: 4px solid #e74c3c;"></div>
+                        <span>Hito 🎯</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color completed" style="background: #d4edda; border-left: 4px solid #28a745;"></div>
+                        <span>Tarea Completada ✅</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-symbol">
+                            <span class="task-hours-example">8h</span>
+                        </div>
+                        <span>Horas de la tarea</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-symbol">
+                            <span class="task-dates-example">01/01 - 05/01</span>
+                        </div>
+                        <span>Fechas de inicio y fin</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-symbol">
+                            <span style="font-size: 0.7rem; color: #2c3e50;">08:00 - 17:00</span>
+                        </div>
+                        <span>Horas específicas de tareas</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="calendar-section" id="calendarioProyecto">
+                <h2>Calendario del Proyecto</h2>
+                <div id="calendar-container"></div>
+            </div>
+
+            <!-- Modal de tareas del día -->
+            <div id="day-tasks-modal" class="modal-overlay">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 id="modal-date-title">Tareas del día</h3>
+                        <button id="close-modal-btn" class="close-modal-btn">&times;</button>
+                    </div>
+                    <div id="modal-tasks-list" class="modal-tasks-list">
+                        <!-- Las tareas se cargarán aquí dinámicamente -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="s-curve-section" id="curvaSProyecto">
+                <h2>Curva S - Seguimiento del Proyecto</h2>
+                <div id="s-curve-chart" style="width: 100%; height: 500px;"></div>
+                <div class="s-curve-metrics">
+                    <div class="metric-card">
+                        <div class="metric-value" id="schedule-variance">--</div>
+                        <div class="metric-label">Variación de Cronograma</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="performance-index">--</div>
+                        <div class="metric-label">Índice de Rendimiento</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="project-status">--</div>
+                        <div class="metric-label">Estado del Proyecto</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin: 20px 0;" id="project-actions">
+                <button id="download-pdf">Descargar Resumen en PDF</button>
+                <button id="back-to-projects-btn">Volver a Proyectos</button>
+                <button id="logout-btn">Cerrar Sesión</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <!-- Botón flotante de navegación -->
+    <div id="floatingNavBtn">
+        <span>☰</span>
+        <div id="floatingNavMenu">
+            <a href="#informacionProyecto">Información</a>
+            <a href="#phases-container">Fases</a>
+            <a href="#calendarioProyecto">Calendario</a>
+            <a href="#curvaSProyecto">Curva S</a>
+            <a href="#project-actions">Finalizar</a>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBX1H8MaD6eoIo0jbpVRKO-fGtND3PthlI",
+            authDomain: "pdt-futura.firebaseapp.com",
+            projectId: "pdt-futura",
+            storageBucket: "pdt-futura.appspot.com",
+            messagingSenderId: "807986666483",
+            appId: "1:807986666483:web:4213a33d83132845c87931"
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const params = new URLSearchParams(window.location.search);
+            const projectId = params.get('id');
+            const autoDownload = params.get('download');
+            const container = document.getElementById('project-container');
+
+            if (!projectId) {
+                container.innerHTML = '<h1>Error: No se especificó un ID de proyecto.</h1>';
+                return;
+            }
+
+            try {
+                const docRef = db.collection('projects').doc(projectId);
+                const docSnap = await docRef.get();
+
+                if (!docSnap.exists) {
+                    container.innerHTML = `<h1>Error: No se encontró el proyecto con ID ${projectId}.</h1>`;
+                    return;
+                }
+
+                const projectData = docSnap.data();
+                renderProject(projectData, autoDownload);
+
+            } catch (error) {
+                console.error("Error al cargar el proyecto:", error);
+                container.innerHTML = '<h1>Error al cargar el proyecto. Revise la consola.</h1>';
+            }
+        });
+
+        // Función helper para formatear fechas de manera consistente
+        function formatDateForDisplay(date) {
+            if (!date || isNaN(date.getTime())) return '--';
+            return date.toLocaleDateString('es-ES');
+        }
+
+        function closeDayTasksModal() {
+            const modal = document.getElementById('day-tasks-modal');
+            modal.classList.remove('show');
+            document.body.style.overflow = ''; // Restaurar scroll del body
+        }
+
+        // Funciones para interacciones del calendario
+        function setupCalendarInteractions(data) {
+            console.log('Configurando interacciones del calendario...');
+            
+            // Configurar tooltips para indicadores de tareas
+            document.querySelectorAll('.task-indicator[data-task-tooltip], .milestone-indicator[data-task-tooltip]').forEach(indicator => {
+                // console.log('Configurando tooltip para indicador:', indicator, 'con texto:', indicator.getAttribute('data-task-tooltip'));
+                indicator.addEventListener('mouseenter', (e) => {
+                    // console.log('MOUSE ENTER en indicador:', e.target);
+                    const tooltipText = e.target.getAttribute('data-task-tooltip');
+                    // console.log('Texto del tooltip:', tooltipText);
+                    if (tooltipText && tooltipText.trim()) {
+                        // console.log('Llamando a showTooltip con:', tooltipText);
+                        showTooltip(e.target, tooltipText);
+                    } else {
+                        // console.log('No hay texto para tooltip');
+                    }
+                });
+                
+                indicator.addEventListener('mouseleave', () => {
+                    // console.log('MOUSE LEAVE en indicador');
+                    hideTooltip();
+                });
+                
+                // Configurar navegación al hacer click en tarea
+                indicator.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Evitar que se active el click del día
+                    const phaseIndex = parseInt(e.target.getAttribute('data-phase-index'));
+                    const taskIndex = parseInt(e.target.getAttribute('data-task-index'));
+                    if (!isNaN(phaseIndex) && !isNaN(taskIndex)) {
+                        navigateToTask(phaseIndex, taskIndex);
+                    }
+                });
+            });
+            
+            // Configurar tooltips para días con tareas (como respaldo)
+            document.querySelectorAll('.calendar-day.has-task, .calendar-day.has-milestone').forEach(day => {
+                day.addEventListener('mouseenter', (e) => {
+                    // Solo mostrar tooltip si no hay indicadores específicos
+                    const indicators = day.querySelectorAll('.task-indicator, .milestone-indicator');
+                    if (indicators.length === 0) {
+                        const dateStr = day.getAttribute('data-date');
+                        if (dateStr) {
+                            const [year, month, dayNum] = dateStr.split('-').map(Number);
+                            const date = new Date(year, month - 1, dayNum);
+                            const dayTasks = getTasksForDate(date, data);
+                            if (dayTasks.length > 0) {
+                                const tooltipText = dayTasks.map(t => `${t.name} (${t.durationHours}h)`).join('\n');
+                                showTooltip(day, tooltipText);
+                            }
+                        }
+                    }
+                });
+                
+                day.addEventListener('mouseleave', () => {
+                    hideTooltip();
+                });
+            });
+            
+            // Configurar click en días del calendario
+            document.querySelectorAll('.calendar-day').forEach(day => {
+                day.addEventListener('click', (e) => {
+                    const dateStr = e.currentTarget.getAttribute('data-date');
+                    if (dateStr) {
+                        // Crear fecha desde YYYY-MM-DD formato sin problemas de zona horaria
+                        const [year, month, day] = dateStr.split('-').map(Number);
+                        const date = new Date(year, month - 1, day); // month es 0-indexed
+                        showDayTasksModal(date, data);
+                    }
+                });
+            });
+            
+            // Configurar cierre del modal
+            document.getElementById('close-modal-btn').addEventListener('click', closeDayTasksModal);
+            document.getElementById('day-tasks-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'day-tasks-modal') {
+                    closeDayTasksModal();
+                }
+            });
+        }
+
+        function setupLogoutFunctionality() {
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => {
+                    // Confirmar antes de cerrar sesión
+                    if (confirm('¿Estás seguro de que quieres cerrar la sesión y volver a la página principal?')) {
+                        // Redirigir a la página principal
+                        window.location.href = 'index.html';
+                    }
+                });
+            }
+        }
+
+        function setupBackToProjectsFunctionality() {
+            const backToProjectsBtn = document.getElementById('back-to-projects-btn');
+            if (backToProjectsBtn) {
+                backToProjectsBtn.addEventListener('click', () => {
+                    // Confirmar antes de volver a la lista de proyectos
+                    if (confirm('¿Estás seguro de que quieres volver a la lista de proyectos? Los cambios no guardados se perderán.')) {
+                        // Redirigir a la página de proyectos
+                        window.location.href = 'proyectos.html';
+                    }
+                });
+            }
+        }
+
+        function setupHolidaysFunctionality(data) {
+            // Event listener para el checkbox de festivos
+            document.getElementById('include-holidays').addEventListener('change', toggleHolidaysList);
+            
+            // Event listener para agregar festivo
+            document.getElementById('add-holiday-btn').addEventListener('click', () => {
+                const container = document.getElementById('holidays-container');
+                const holidayItem = document.createElement('div');
+                holidayItem.className = 'holiday-item';
+                holidayItem.innerHTML = `
+                    <input type="date">
+                    <input type="text" placeholder="Nombre del festivo">
+                    <button type="button" onclick="removeHolidayItem(this)">Eliminar</button>
+                `;
+                container.appendChild(holidayItem);
+            });
+        }
+
+        async function calculateDatesWithConfig(data, newStartDate, config) {
+            console.log('Calculando fechas con configuración:', config);
+
+            // Crear una copia profunda del proyecto
+            const updatedData = JSON.parse(JSON.stringify(data));
+
+            // Función helper para verificar si una fecha es día laborable
+            function isWorkingDay(date, config) {
+                const dayOfWeek = date.getDay();
+                const isWeekend = (dayOfWeek === 0 && config.includeSundays) || (dayOfWeek === 6 && config.includeSaturdays);
+                const isHoliday = config.includeHolidays ? isHolidayDate(date, config.holidays) : false;
+                return !isWeekend && !isHoliday;
+            }
+
+            // Función helper para encontrar el siguiente día laborable desde una fecha
+            function findNextWorkingDay(startDate, config) {
+                const date = new Date(startDate);
+                while (!isWorkingDay(date, config)) {
+                    date.setDate(date.getDate() + 1);
+                }
+                return date;
+            }
+
+            // VALIDAR Y AJUSTAR FECHA DE INICIO DEL PROYECTO
+            let projectStartDate = new Date(newStartDate);
+            if (!isWorkingDay(projectStartDate, config)) {
+                console.log('Fecha de inicio no es día laborable, ajustando al siguiente día laborable');
+                projectStartDate = findNextWorkingDay(projectStartDate, config);
+            }
+
+            // Actualizar configuración y fecha de inicio
+            updatedData.startDate = firebase.firestore.Timestamp.fromDate(projectStartDate);
+            updatedData.includeSaturdays = config.includeSaturdays;
+            updatedData.includeSundays = config.includeSundays;
+            updatedData.includeHolidays = config.includeHolidays;
+            updatedData.holidays = config.holidays;
+            
+            // Guardar configuración del turno
+            updatedData.shiftStartTime = config.shiftStartTime;
+            updatedData.shiftEndTime = config.shiftEndTime;
+            updatedData.shiftBreakHours = config.shiftBreakHours;
+            updatedData.effectiveShiftHours = config.effectiveShiftHours;
+            
+            updatedData.lastUpdated = firebase.firestore.Timestamp.now();
+
+            // CALCULAR FECHAS DE TAREAS CON LÓGICA CORRECTA DE HORAS POR DÍA
+            let currentDate = new Date(projectStartDate); // Comenzar desde la fecha de inicio validada
+            let hoursRemainingToday = config.effectiveShiftHours || 8; // Horas disponibles en el día actual
+            let currentTimeInDay = config.shiftStartTime ? parseInt(config.shiftStartTime.split(':')[0]) + parseInt(config.shiftStartTime.split(':')[1]) / 60 : 8; // Hora actual en el día (en horas decimales)
+            let taskCounter = 1;
+
+            console.log(`Iniciando cálculo desde ${currentDate.toLocaleDateString('es-ES')} con ${hoursRemainingToday}h disponibles por día`);
+
+            updatedData.phases.forEach((phase, phaseIndex) => {
+                phase.tasks.forEach((task, taskIndex) => {
+                    const taskHours = task.durationHours;
+                    let hoursRemainingForTask = taskHours; // Horas que aún necesita esta tarea
+
+                    console.log(`\n=== TAREA ${taskCounter}: ${task.name} (${taskHours}h) ===`);
+                    console.log(`Fecha actual: ${currentDate.toLocaleDateString('es-ES')}, Horas disponibles hoy: ${hoursRemainingToday}h`);
+
+                    // Fecha de inicio de la tarea (siempre es la fecha actual cuando comienza)
+                    const taskStartDate = new Date(currentDate);
+                    const taskStartTime = currentTimeInDay; // Hora de inicio en horas decimales
+
+                    // SIMULAR PRIMERO LA ASIGNACIÓN COMPLETA PARA CALCULAR FECHAS DE FIN
+                    let tempDate = new Date(currentDate);
+                    let tempTimeInDay = currentTimeInDay;
+                    let tempHoursRemainingToday = hoursRemainingToday;
+                    let tempHoursRemainingForTask = taskHours;
+
+                    console.log(`  Simulando asignación para tarea de ${taskHours}h comenzando ${tempDate.toLocaleDateString('es-ES')} ${tempTimeInDay.toFixed(2)}h`);
+
+                    // Simular la asignación completa para calcular fecha y hora de fin
+                    while (tempHoursRemainingForTask > 0) {
+                        // Si no quedan horas en el día actual, pasar al siguiente día laborable
+                        if (tempHoursRemainingToday <= 0 || tempTimeInDay >= 18) {
+                            tempDate.setDate(tempDate.getDate() + 1);
+                            while (!isWorkingDay(tempDate, config)) {
+                                tempDate.setDate(tempDate.getDate() + 1);
+                            }
+                            tempHoursRemainingToday = config.effectiveShiftHours || 8;
+                            tempTimeInDay = config.shiftStartTime ? parseInt(config.shiftStartTime.split(':')[0]) + parseInt(config.shiftStartTime.split(':')[1]) / 60 : 8;
+                        }
+
+                        // Aplicar descanso si es necesario
+                        if (tempTimeInDay >= 12 && tempTimeInDay < 14) {
+                            tempTimeInDay = 14;
+                            tempHoursRemainingToday = 4; // Horas disponibles en la tarde
+                        }
+
+                        // Calcular horas disponibles ahora
+                        let hoursAvailableNow = Math.min(tempHoursRemainingToday, 18 - tempTimeInDay);
+                        if (tempTimeInDay < 12) {
+                            hoursAvailableNow = Math.min(hoursAvailableNow, 12 - tempTimeInDay);
+                        }
+
+                        const hoursToAssignToday = Math.min(tempHoursRemainingForTask, hoursAvailableNow);
+                        tempHoursRemainingForTask -= hoursToAssignToday;
+                        tempHoursRemainingToday -= hoursToAssignToday;
+                        tempTimeInDay += hoursToAssignToday;
+
+                        // Si llega exactamente a 12, saltar al descanso
+                        if (tempTimeInDay === 12) {
+                            tempTimeInDay = 14;
+                            tempHoursRemainingToday = 4;
+                        }
+                    }
+
+                    // Ahora tenemos la fecha y hora de fin calculadas
+                    const taskEndDate = new Date(tempDate);
+                    const taskEndTime = tempTimeInDay;
+
+                    console.log(`  Tarea terminará: ${taskEndDate.toLocaleDateString('es-ES')} ${taskEndTime.toFixed(2)}h`);
+
+                    // AHORA HACER LA ASIGNACIÓN REAL (sin modificar las fechas ya calculadas)
+                    hoursRemainingForTask = taskHours;
+                    while (hoursRemainingForTask > 0) {
+                        console.log(`  Asignando ${hoursRemainingForTask}h restantes. Disponible hoy: ${hoursRemainingToday}h`);
+
+                        // Si no quedan horas en el día actual, pasar al siguiente día laborable
+                        if (hoursRemainingToday <= 0 || currentTimeInDay >= 18) {
+                            console.log(`  No quedan horas hoy, pasando al siguiente día laborable`);
+                            currentDate.setDate(currentDate.getDate() + 1);
+                            while (!isWorkingDay(currentDate, config)) {
+                                currentDate.setDate(currentDate.getDate() + 1);
+                            }
+                            hoursRemainingToday = config.effectiveShiftHours || 8;
+                            currentTimeInDay = config.shiftStartTime ? parseInt(config.shiftStartTime.split(':')[0]) + parseInt(config.shiftStartTime.split(':')[1]) / 60 : 8;
+                            console.log(`  Nuevo día: ${currentDate.toLocaleDateString('es-ES')} con ${hoursRemainingToday}h disponibles`);
+                        }
+
+                        // Aplicar descanso si es necesario
+                        if (currentTimeInDay >= 12 && currentTimeInDay < 14) {
+                            currentTimeInDay = 14;
+                            hoursRemainingToday = 4; // Horas disponibles en la tarde
+                        }
+
+                        // Calcular horas disponibles ahora
+                        let hoursAvailableNow = Math.min(hoursRemainingToday, 18 - currentTimeInDay);
+                        if (currentTimeInDay < 12) {
+                            hoursAvailableNow = Math.min(hoursAvailableNow, 12 - currentTimeInDay);
+                        }
+
+                        const hoursToAssignToday = Math.min(hoursRemainingForTask, hoursAvailableNow);
+                        console.log(`  Asignando ${hoursToAssignToday}h de esta tarea al día ${currentDate.toLocaleDateString('es-ES')}`);
+
+                        hoursRemainingForTask -= hoursToAssignToday;
+                        hoursRemainingToday -= hoursToAssignToday;
+                        currentTimeInDay += hoursToAssignToday;
+
+                        // Si llega exactamente a 12, saltar al descanso
+                        if (currentTimeInDay === 12) {
+                            currentTimeInDay = 14;
+                            hoursRemainingToday = 4;
+                        }
+
+                        console.log(`  Tarea ahora necesita ${hoursRemainingForTask}h más. Quedan ${hoursRemainingToday}h disponibles hoy. Hora actual: ${currentTimeInDay.toFixed(2)}h`);
+                    }
+
+                    console.log(`  ✓ TAREA COMPLETADA: ${taskStartDate.toLocaleDateString('es-ES')} ${taskStartTime.toFixed(2)}h → ${taskEndDate.toLocaleDateString('es-ES')} ${taskEndTime.toFixed(2)}h`);
+
+                    // Convertir horas decimales a formato HH:MM
+                    function decimalHoursToTime(decimalHours) {
+                        const hours = Math.floor(decimalHours);
+                        const minutes = Math.round((decimalHours - hours) * 60);
+                        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                    }
+
+                    // Actualizar las fechas y horas de la tarea
+                    updatedData.phases[phaseIndex].tasks[taskIndex].startDate = firebase.firestore.Timestamp.fromDate(taskStartDate);
+                    updatedData.phases[phaseIndex].tasks[taskIndex].endDate = firebase.firestore.Timestamp.fromDate(taskEndDate);
+                    updatedData.phases[phaseIndex].tasks[taskIndex].startTime = decimalHoursToTime(taskStartTime);
+                    updatedData.phases[phaseIndex].tasks[taskIndex].endTime = decimalHoursToTime(taskEndTime);
+
+                    // La siguiente tarea puede comenzar inmediatamente si quedan horas disponibles,
+                    // o al día siguiente si no quedan horas
+                    if (hoursRemainingToday <= 0 || currentTimeInDay >= 18) {
+                        // No quedan horas hoy, la siguiente tarea comenzará mañana
+                        currentDate.setDate(currentDate.getDate() + 1);
+                        while (!isWorkingDay(currentDate, config)) {
+                            currentDate.setDate(currentDate.getDate() + 1);
+                        }
+                        hoursRemainingToday = config.effectiveShiftHours || 8; // Resetear horas disponibles
+                        currentTimeInDay = config.shiftStartTime ? parseInt(config.shiftStartTime.split(':')[0]) + parseInt(config.shiftStartTime.split(':')[1]) / 60 : 8; // Resetear hora del día
+                        console.log(`  → Siguiente tarea comenzará el ${currentDate.toLocaleDateString('es-ES')} (día siguiente laborable)`);
+                    } else {
+                        // Preparar para la siguiente tarea aplicando descanso si es necesario
+                        if (currentTimeInDay >= 12 && currentTimeInDay < 14) {
+                            currentTimeInDay = 14;
+                            hoursRemainingToday = 4;
+                        }
+                        console.log(`  → Siguiente tarea puede comenzar hoy mismo (${hoursRemainingToday}h restantes a las ${currentTimeInDay.toFixed(2)}h)`);
+                    }
+
+                    taskCounter++;
+                });
+            });
+
+            console.log('Fechas recalculadas:', updatedData);
+            return updatedData;
+        }
+
+        // Función helper para crear fecha desde input date (evita problemas de zona horaria)
+        function createDateFromInput(inputValue) {
+            if (!inputValue) return null;
+            // Crear fecha en zona horaria local para evitar problemas
+            const date = new Date(inputValue + 'T00:00:00');
+            return date;
+        }
+
+        // Función para obtener días festivos desde la interfaz de usuario
+        function getHolidaysFromUI() {
+            const holidayItems = document.querySelectorAll('.holiday-item');
+            const holidays = [];
+            
+            holidayItems.forEach((item, index) => {
+                const dateInput = item.querySelector('input[type="date"]');
+                const nameInput = item.querySelector('input[type="text"]');
+                
+                if (dateInput.value && nameInput.value) {
+                    holidays.push({
+                        date: firebase.firestore.Timestamp.fromDate(new Date(dateInput.value)),
+                        name: nameInput.value
+                    });
+                }
+            });
+            
+            return holidays;
+        }
+
+        // Función para mostrar tooltip
+        function showTooltip(element, text) {
+            // Remover tooltip existente
+            hideTooltip();
+            
+            // Crear nuevo tooltip
+            const tooltip = document.createElement('div');
+            tooltip.className = 'calendar-tooltip';
+            tooltip.textContent = text;
+            
+            document.body.appendChild(tooltip);
+            
+            // Calcular dimensiones después de agregar al DOM
+            const tooltipWidth = tooltip.offsetWidth;
+            const tooltipHeight = tooltip.offsetHeight;
+            
+            // Posicionar tooltip
+            const rect = element.getBoundingClientRect();
+            
+            let top = rect.top - tooltipHeight - 5;
+            let left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+            
+            // Si no hay espacio arriba, posicionar abajo
+            if (top < 0) {
+                top = rect.bottom + 5;
+            }
+            
+            // Ajustar si se sale por los lados
+            if (left < 0) {
+                left = 5;
+            } else if (left + tooltipWidth > window.innerWidth) {
+                left = window.innerWidth - tooltipWidth - 5;
+            }
+            
+            tooltip.style.top = top + 'px';
+            tooltip.style.left = left + 'px';
+        }
+
+        // Función para ocultar tooltip
+        function hideTooltip() {
+            const existingTooltip = document.querySelector('.calendar-tooltip');
+            if (existingTooltip) {
+                existingTooltip.remove();
+            }
+        }
+
+        // Función para navegar a una tarea específica
+        function navigateToTask(phaseIndex, taskIndex) {
+            // Encontrar el elemento de la tarea en las fases
+            const phaseElements = document.querySelectorAll('.phase');
+            const phaseElement = phaseElements[phaseIndex];
+            if (!phaseElement) return;
+            
+            const taskElements = phaseElement.querySelectorAll('.task');
+            const taskElement = taskElements[taskIndex];
+            if (!taskElement) return;
+            
+            // Expandir la fase si está colapsada
+            if (phaseElement.classList.contains('collapsed')) {
+                phaseElement.classList.remove('collapsed');
+                const header = phaseElement.querySelector('.phase-header');
+                if (header) {
+                    header.classList.remove('collapsed');
+                }
+            }
+
+            // Hacer scroll hacia la tarea
+            taskElement.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+            
+            // Resaltar temporalmente la tarea
+            taskElement.style.backgroundColor = '#ffffcc';
+            setTimeout(() => {
+                taskElement.style.backgroundColor = '';
+            }, 2000);
+        }
+
+        // Función para obtener tareas de una fecha específica
+        function getTasksForDate(date, data) {
+            const tasks = [];
+            let taskCounter = 1;
+
+            data.phases.forEach((phase, phaseIndex) => {
+                phase.tasks.forEach((task, taskIndex) => {
+                    const taskStart = task.startDate && typeof task.startDate.toDate === 'function' ? task.startDate.toDate() : new Date(task.startDate);
+                    const taskEnd = task.endDate && typeof task.endDate.toDate === 'function' ? task.endDate.toDate() : new Date(task.endDate);
+
+                    // Si la tarea comienza en esta fecha
+                    if (taskStart.toDateString() === date.toDateString()) {
+                        tasks.push({
+                            ...task,
+                            number: taskCounter,
+                            isMilestone: task.isMilestone || task.esHito || false,
+                            phaseIndex: phaseIndex,
+                            taskIndex: taskIndex,
+                            phaseName: phase.name
+                        });
+                    }
+                    taskCounter++;
+                });
+            });
+
+            return tasks;
+        }
+
+        // Función para mostrar modal con tareas del día
+        function showDayTasksModal(date, data) {
+            const modal = document.getElementById('day-tasks-modal');
+            const modalTitle = document.getElementById('modal-date-title');
+            const tasksList = document.getElementById('modal-tasks-list');
+            
+            // Establecer título del modal
+            modalTitle.textContent = `Tareas del ${date.toLocaleDateString('es-ES')}`;
+            
+            // Obtener tareas del día
+            const dayTasks = getTasksForDate(date, data);
+            
+            // Generar contenido del modal
+            if (dayTasks.length === 0) {
+                tasksList.innerHTML = '<p class="no-tasks">No hay tareas programadas para este día.</p>';
+            } else {
+                tasksList.innerHTML = dayTasks.map(task => {
+                    const taskType = task.isMilestone ? 'milestone' : 'regular';
+                    const statusIcon = task.completed ? '✅' : '⏳';
+                    const statusText = task.completed ? 'Completada' : 'Pendiente';
+                    
+                    return `
+                        <div class="modal-task-item ${taskType}" data-phase-index="${task.phaseIndex}" data-task-index="${task.taskIndex}">
+                            <div class="modal-task-header">
+                                <span class="modal-task-number">${task.number}</span>
+                                <span class="modal-task-status">${statusIcon} ${statusText}</span>
+                            </div>
+                            <div class="modal-task-info">
+                                <div class="modal-task-name">${task.name}</div>
+                                <div class="modal-task-details">
+                                    <span class="modal-task-phase">Fase: ${task.phaseName}</span>
+                                    <span class="modal-task-hours">${task.durationHours}h</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Configurar clicks en tareas del modal
+                tasksList.querySelectorAll('.modal-task-item').forEach(taskItem => {
+                    taskItem.addEventListener('click', () => {
+                        const phaseIndex = parseInt(taskItem.getAttribute('data-phase-index'));
+                        const taskIndex = parseInt(taskItem.getAttribute('data-task-index'));
+                        navigateToTask(phaseIndex, taskIndex);
+                        closeDayTasksModal();
+                    });
+                });
+            }
+            
+            // Mostrar modal
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden'; // Prevenir scroll del body
+        }
+
+        // Función para configurar descarga de PDF
+        function setupPdfDownload(data) {
+            const downloadBtn = document.getElementById('download-pdf');
+
+            // Limpiar event listeners anteriores para evitar descargas múltiples
+            const newBtn = downloadBtn.cloneNode(true);
+            downloadBtn.parentNode.replaceChild(newBtn, downloadBtn);
+
+            // Función simplificada para generar PDF directamente con jsPDF
+            async function generateSimplePDF(data, button = null) {
+                console.log('Iniciando generación de PDF simplificada...');
+                if (button) {
+                    button.disabled = true;
+                    button.textContent = 'Generando PDF...';
+                }
+
+                // Usar la función centralizada calculateProjectMetrics para obtener todas las métricas
+                const pdfMetrics = calculateProjectMetrics(data);
+                const totalTasks = pdfMetrics.totalTasks;
+                const totalHours = pdfMetrics.totalHours;
+                const completedTasks = pdfMetrics.completedTasks;
+                const completedHours = pdfMetrics.completedHours;
+                const progressPercentage = pdfMetrics.progressPercentage;
+
+                // Calcular fechas del proyecto
+                const projectStartDate = data.startDate && typeof data.startDate.toDate === 'function' ? data.startDate.toDate() : new Date(data.startDate);
+                const lastTask = data.phases[data.phases.length - 1].tasks.slice(-1)[0];
+                const projectEndDate = lastTask.endDate && typeof lastTask.endDate.toDate === 'function' ? lastTask.endDate.toDate() : new Date(lastTask.endDate);
+                const durationDays = Math.ceil((projectEndDate - projectStartDate) / (1000 * 60 * 60 * 24));
+
+                // Usar la función centralizada calculateProjectMetrics para obtener todas las métricas
+                const scheduleVariance = pdfMetrics.scheduleVariance;
+                const performanceIndex = pdfMetrics.schedulePerformanceIndex;
+                const projectStatus = pdfMetrics.projectStatus;
+
+                // Crear PDF directamente con jsPDF
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const margin = 20;
+                const contentWidth = pageWidth - 2 * margin;
+                let yPosition = margin;
+
+                // Cargar el logo para marca de agua al inicio
+                let logoImg = null;
+                try {
+                    logoImg = new Image();
+                    logoImg.crossOrigin = 'anonymous';
+                    
+                    const logoPromise = new Promise((resolve, reject) => {
+                        logoImg.onload = () => resolve(logoImg);
+                        logoImg.onerror = () => resolve(null);
+                    });
+                    
+                    logoImg.src = 'logo_2025web.png';
+                    await logoPromise;
+                    console.log('Logo cargado exitosamente para PDF');
+                } catch (logoError) {
+                    console.log('Error al cargar el logo, continuando sin marca de agua:', logoError);
+                    logoImg = null;
+                }
+
+                // Información del proyecto con marca de agua
+                if (logoImg) {
+                    // Agregar marca de agua del logo
+                    const logoAspect = logoImg.width / logoImg.height;
+                    const logoWidth = 60;
+                    const logoHeight = logoWidth / logoAspect;
+                    const logoX = pageWidth - logoWidth - 20;
+                    const logoY = 20;
+                    pdf.setGState(pdf.GState({ opacity: 0.1 }));
+                    pdf.addImage(logoImg, 'PNG', logoX, logoY, logoWidth, logoHeight);
+                    pdf.setGState(pdf.GState({ opacity: 1.0 }));
+                }
+
+                // Título principal
+                pdf.setFontSize(20);
+                pdf.setFont('helvetica', 'bold');
+                const title = `Resumen Ejecutivo - ${data.projectName}`;
+                const titleLines = pdf.splitTextToSize(title, contentWidth);
+                pdf.text(titleLines, margin, yPosition);
+                yPosition += titleLines.length * 8 + 10;
+
+                // Información básica del proyecto
+                pdf.setFontSize(12);
+                pdf.setFont('helvetica', 'normal');
+                const projectInfo = [
+                    ['Proyecto:', data.projectName],
+                    ['Fecha de Inicio', formatDateForDisplay(projectStartDate)],
+                    ['Fecha de Fin Estimada', formatDateForDisplay(projectEndDate)],
+                    ['Duración Total', `${durationDays} días`],
+                    ['Total de Tareas', `${totalTasks} tareas`],
+                    ['Total de Horas', `${totalHours} horas`],
+                    ['Progreso General', `${progressPercentage.toFixed(1)}%`],
+                    ['Estado del Proyecto', projectStatus],
+                    ['Variación de Cronograma', `${scheduleVariance}%`],
+                    ['Índice de Rendimiento', performanceIndex.toFixed(2)]
+                ];
+
+                projectInfo.forEach(([label, value]) => {
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text(label + ':', margin, yPosition);
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.text(value.toString(), margin + 50, yPosition);
+                    yPosition += 7;
+                });
+
+                yPosition += 10;
+
+                // Resumen por fases
+                pdf.setFontSize(14);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('Resumen por Fases', margin, yPosition);
+                yPosition += 10;
+
+                pdf.setFontSize(10);
+                data.phases.forEach((phase, index) => {
+                    if (yPosition > pageHeight - 40) {
+                        pdf.addPage();
+                        yPosition = margin;
+                        
+                        // Agregar marca de agua a la nueva página
+                        if (logoImg) {
+                            const logoAspect = logoImg.width / logoImg.height;
+                            const logoWidth = 60;
+                            const logoHeight = logoWidth / logoAspect;
+                            const logoX = pageWidth - logoWidth - 20;
+                            const logoY = 20;
+                            pdf.setGState(pdf.GState({ opacity: 0.1 }));
+                            pdf.addImage(logoImg, 'PNG', logoX, logoY, logoWidth, logoHeight);
+                            pdf.setGState(pdf.GState({ opacity: 1.0 }));
+                        }
+                    }
+
+                    const phaseCompletedTasks = phase.tasks.filter(task => task.completed).length;
+                    const phaseTotalTasks = phase.tasks.length;
+                    const phaseProgress = phaseTotalTasks > 0 ? (phaseCompletedTasks / phaseTotalTasks * 100).toFixed(1) : 0;
+
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text(`Fase ${index + 1}: ${phase.name}`, margin, yPosition);
+                    yPosition += 5;
+                    
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.text(`Progreso: ${phaseProgress}% (${phaseCompletedTasks}/${phaseTotalTasks} tareas)`, margin + 5, yPosition);
+                    yPosition += 5;
+
+                    // Tareas de la fase
+                    phase.tasks.forEach((task, taskIndex) => {
+                        if (yPosition > pageHeight - 30) {
+                            pdf.addPage();
+                            yPosition = margin;
+                            
+                            // Agregar marca de agua a la nueva página
+                            if (logoImg) {
+                                const logoAspect = logoImg.width / logoImg.height;
+                                const logoWidth = 60;
+                                const logoHeight = logoWidth / logoAspect;
+                                const logoX = pageWidth - logoWidth - 20;
+                                const logoY = 20;
+                                pdf.setGState(pdf.GState({ opacity: 0.1 }));
+                                pdf.addImage(logoImg, 'PNG', logoX, logoY, logoWidth, logoHeight);
+                                pdf.setGState(pdf.GState({ opacity: 1.0 }));
+                            }
+                        }
+
+                        const status = task.completed ? '✓' : '○';
+                        const taskStart = task.startDate && typeof task.startDate.toDate === 'function' ? 
+                                         task.startDate.toDate() : new Date(task.startDate);
+                        const taskEnd = task.endDate && typeof task.endDate.toDate === 'function' ? 
+                                       task.endDate.toDate() : new Date(task.endDate);
+                        
+                        const taskText = `  ${status} ${task.name} (${task.durationHours || 0}h) - ${formatDateForDisplay(taskStart)} a ${formatDateForDisplay(taskEnd)}`;
+                        const taskLines = pdf.splitTextToSize(taskText, contentWidth - 10);
+                        pdf.text(taskLines, margin + 10, yPosition);
+                        yPosition += taskLines.length * 4;
+                    });
+                    
+                    yPosition += 3;
+                });
+
+                // Intentar crear gráfico de curva S
+                try {
+                    if (yPosition > pageHeight - 100) {
+                        pdf.addPage();
+                        yPosition = margin;
+                        
+                        // Agregar marca de agua a la nueva página
+                        if (logoImg) {
+                            const logoAspect = logoImg.width / logoImg.height;
+                            const logoWidth = 60;
+                            const logoHeight = logoWidth / logoAspect;
+                            const logoX = pageWidth - logoWidth - 20;
+                            const logoY = 20;
+                            pdf.setGState(pdf.GState({ opacity: 0.1 }));
+                            pdf.addImage(logoImg, 'PNG', logoX, logoY, logoWidth, logoHeight);
+                            pdf.setGState(pdf.GState({ opacity: 1.0 }));
+                        }
+                    }
+
+                    // Título del gráfico
+                    pdf.setFontSize(14);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text('Curva S del Proyecto', margin, yPosition);
+                    yPosition += 15;
+
+                    // Crear canvas para el gráfico
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 600;
+                    canvas.height = 300;
+                    canvas.style.backgroundColor = 'white';
+                    
+                    // Intentar dibujar en el canvas
+                    drawPDFSCurve(canvas, data);
+                    
+                    // Agregar el canvas al PDF
+                    const canvasImage = canvas.toDataURL('image/png', 1.0);
+                    pdf.addImage(canvasImage, 'PNG', margin, yPosition, contentWidth, 80);
+                    
+                    console.log('Gráfico de curva S agregado exitosamente al PDF');
+                } catch (chartError) {
+                    console.warn('Error al generar el gráfico, intentando método alternativo:', chartError);
+                    
+                    // Método alternativo con canvas más simple
+                    try {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 400;
+                        canvas.height = 200;
+                        const ctx = canvas.getContext('2d');
+                        ctx.fillStyle = 'white';
+                        ctx.fillRect(0, 0, 400, 200);
+                        
+                        // Dibujar un gráfico muy simple
+                        ctx.strokeStyle = 'black';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(50, 150);
+                        
+                        // Línea curva simple basada en el progreso
+                        const progress = progressPercentage / 100;
+                        ctx.quadraticCurveTo(200, 150 - (progress * 80), 350, 50);
+                        ctx.stroke();
+                        
+                        // Etiquetas
+                        ctx.fillStyle = 'black';
+                        ctx.font = '12px Arial';
+                        ctx.fillText('Progreso del Proyecto', 150, 30);
+                        ctx.fillText('0%', 40, 165);
+                        ctx.fillText('100%', 350, 45);
+                        ctx.fillText(`Actual: ${progressPercentage.toFixed(1)}%`, 150, 180);
+                        
+                        const canvasImage = canvas.toDataURL('image/png', 1.0);
+                        pdf.addImage(canvasImage, 'PNG', margin, yPosition, contentWidth, 60);
+                        
+                        console.log('Gráfico alternativo agregado exitosamente al PDF');
+                    } catch (altError) {
+                        console.warn('Error también con método alternativo:', altError);
+                        pdf.text('(Gráfico no disponible)', margin, yPosition);
+                        yPosition += 10;
+                    }
+                }
+
+                // Generar el archivo PDF
+                try {
+                    const fileName = `${data.projectName.replace(/[^a-zA-Z0-9\s]/g, '_').replace(/\s+/g, '_')}_resumen.pdf`;
+                    console.log('Guardando PDF:', fileName);
+                    pdf.save(fileName);
+
+                    console.log('PDF generado exitosamente');
+                    if (button) {
+                        button.disabled = false;
+                        button.textContent = 'Descargar Resumen en PDF';
+                    }
+                } catch (saveError) {
+                    // Intentar con canvas alternativo para la curva S
+                    try {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 300;
+                        canvas.height = 150;
+                        const ctx = canvas.getContext('2d');
+                        ctx.fillStyle = 'white';
+                        ctx.fillRect(0, 0, 300, 150);
+                        
+                        const canvasImage = canvas.toDataURL('image/png');
+                        pdf.addImage(canvasImage, 'PNG', margin, yPosition, contentWidth * 0.8, 50);
+                        
+                        const fileName = `${data.projectName.replace(/[^a-zA-Z0-9\s]/g, '_').replace(/\s+/g, '_')}_resumen.pdf`;
+                        console.log('Guardando PDF con curva S alternativa:', fileName);
+                        pdf.save(fileName);
+
+                        console.log('PDF generado exitosamente con método alternativo');
+                        if (button) {
+                            button.disabled = false;
+                            button.textContent = 'Descargar Resumen en PDF';
+                        }
+                    } catch (fallbackError) {
+                        console.error('Error también en el método alternativo:', fallbackError);
+                        alert('Error al generar el gráfico de la curva S. El PDF se generará sin el gráfico.');
+                        
+                        // Generar PDF sin gráfico
+                        const fileName = `${data.projectName.replace(/[^a-zA-Z0-9\s]/g, '_').replace(/\s+/g, '_')}_resumen.pdf`;
+                        pdf.save(fileName);
+                        
+                        if (button) {
+                            button.disabled = false;
+                            button.textContent = 'Descargar Resumen en PDF';
+                        }
+                    }
+                }
+            }
+
+            newBtn.addEventListener('click', async () => {
+                await generateSimplePDF(data, newBtn);
+            });
+
+            // Retornar la función generateSimplePDF para uso en auto-download
+            return generateSimplePDF;
+        }
+
+        function setupDateRecalculation(data) {
+            const recalculateBtn = document.getElementById('recalculate-dates-btn');
+            
+            // Limpiar event listeners anteriores para evitar múltiples llamadas
+            const newBtn = recalculateBtn.cloneNode(true);
+            recalculateBtn.parentNode.replaceChild(newBtn, recalculateBtn);
+            
+            // Actualizar el campo project-start-date en tiempo real cuando cambia el input
+            const startDateInput = document.getElementById('start-date-input');
+            startDateInput.addEventListener('change', () => {
+                const selectedDate = createDateFromInput(startDateInput.value);
+                if (selectedDate) {
+                    document.getElementById('project-start-date').textContent = formatDateForDisplay(selectedDate);
+                }
+            });
+            
+            // Función común para recalcular fechas y guardar configuración
+            const recalculateAndSave = async () => {
+                const newStartDate = createDateFromInput(startDateInput.value);
+                if (!newStartDate) {
+                    alert('Por favor selecciona una fecha válida.');
+                    return;
+                }
+                
+                try {
+                    // Actualizar inmediatamente el campo project-start-date con la fecha seleccionada
+                    document.getElementById('project-start-date').textContent = formatDateForDisplay(newStartDate);
+                    
+                    // Obtener configuración actual
+                    const includeSaturdays = document.getElementById('include-saturdays').checked;
+                    const includeSundays = document.getElementById('include-sundays').checked;
+                    const includeHolidays = document.getElementById('include-holidays').checked;
+                    const holidays = getHolidaysFromUI();
+                    
+                    // Obtener configuración del turno
+                    const shiftStartTime = document.getElementById('shift-start-time').value;
+                    const shiftEndTime = document.getElementById('shift-end-time').value;
+                    const shiftBreakHours = parseFloat(document.getElementById('shift-break-hours').value) || 0;
+                    
+                    // Calcular horas efectivas del turno
+                    const shiftStart = new Date(`2000-01-01T${shiftStartTime}`);
+                    const shiftEnd = new Date(`2000-01-01T${shiftEndTime}`);
+                    const totalShiftHours = (shiftEnd - shiftStart) / (1000 * 60 * 60);
+                    const effectiveShiftHours = Math.max(0, totalShiftHours - shiftBreakHours);
+                    
+                    // Calcular fechas considerando días no laborables
+                    const updatedData = await calculateDatesWithConfig(data, newStartDate, {
+                        includeSaturdays,
+                        includeSundays,
+                        includeHolidays,
+                        holidays,
+                        effectiveShiftHours,
+                        shiftStartTime,
+                        shiftEndTime,
+                        shiftBreakHours
+                    });
+                    
+                    // Guardar en Firestore
+                    const params = new URLSearchParams(window.location.search);
+                    const projectId = params.get('id');
+                    const projectRef = db.collection('projects').doc(projectId);
+                    await projectRef.update(updatedData);
+                    
+                    // Re-renderizar con los nuevos datos, pero asegurar que el input mantenga la fecha seleccionada
+                    renderProject(updatedData);
+                    
+                    // Después de re-renderizar, forzar que el input mantenga la fecha que el usuario seleccionó
+                    document.getElementById('start-date-input').valueAsDate = newStartDate;
+                    document.getElementById('project-start-date').textContent = formatDateForDisplay(newStartDate);
+
+                    // Re-configurar los botones con los datos actualizados
+                    setupDateRecalculation(updatedData);
+                    setupHolidaysFunctionality(updatedData);
+
+                    alert('Cambios aplicados exitosamente.');
+                    
+                } catch (error) {
+                    console.error('Error al aplicar cambios:', error);
+                    alert('Error al aplicar los cambios. Inténtalo de nuevo.');
+                }
+            };
+            
+            // Asignar la función al botón
+            newBtn.addEventListener('click', recalculateAndSave);
+        }
+
+        // Función centralizada para calcular métricas del proyecto
+        function calculateProjectMetrics(data) {
+            // Calcular estadísticas básicas
+            let totalTasks = 0;
+            let totalHours = 0;
+            let completedTasks = 0;
+            let completedHours = 0;
+            
+            data.phases.forEach(phase => {
+                totalTasks += phase.tasks.length;
+                phase.tasks.forEach(task => {
+                    totalHours += task.durationHours;
+                    if (task.completed) {
+                        completedTasks++;
+                        completedHours += task.durationHours;
+                    }
+                });
+            });
+
+            // Calcular fechas del proyecto
+            const projectStartDate = data.startDate && typeof data.startDate.toDate === 'function' ? data.startDate.toDate() : new Date(data.startDate);
+            const lastTask = data.phases[data.phases.length - 1].tasks.slice(-1)[0];
+            const projectEndDate = lastTask.endDate && typeof lastTask.endDate.toDate === 'function' ? lastTask.endDate.toDate() : new Date(lastTask.endDate);
+            const totalDuration = projectEndDate - projectStartDate;
+            const totalWeeks = Math.max(1, Math.ceil(totalDuration / (1000 * 60 * 60 * 24 * 7)));
+            const currentWeek = Math.floor((new Date() - projectStartDate) / (1000 * 60 * 60 * 24 * 7));
+
+            // Generar datos de progreso planificado (curva S)
+            const plannedProgress = [];
+            for (let week = 0; week < totalWeeks; week++) {
+                const plannedPercent = week / (totalWeeks - 1);
+                const sigmoid = 1 / (1 + Math.exp(-6 * (plannedPercent - 0.5)));
+                plannedProgress.push(Math.round(sigmoid * totalHours));
+            }
+
+            // Calcular métricas de rendimiento
+            let scheduleVariance = 0;
+            let schedulePerformanceIndex = 1.0;
+            let projectStatus = 'En Tiempo';
+
+            // Lógica corregida para todos los escenarios
+            if (currentWeek < 0) {
+                // Proyecto con fecha de inicio en el futuro
+                if (completedHours === 0) {
+                    // No hay progreso - proyecto planificado
+                    projectStatus = 'Planificado';
+                    scheduleVariance = 0;
+                    schedulePerformanceIndex = 1.0;
+                } else {
+                    // Hay progreso completado ANTES de la fecha de inicio - MUY ADELANTE
+                    // Esto significa que el proyecto está muy adelantado al cronograma
+                    // Como el proyecto aún no ha empezado oficialmente, cualquier progreso es 100% adelantado
+                    scheduleVariance = 100; // 100% adelantado
+                    schedulePerformanceIndex = completedHours > 0 ? 2.0 : 1.0; // Al menos 2.0x el rendimiento esperado
+                    projectStatus = 'Muy Adelantado';
+                }
+            } else {
+                // Proyecto ya iniciado (currentWeek >= 0)
+                const clampedCurrentWeek = Math.max(0, Math.min(currentWeek, totalWeeks - 1));
+                const plannedAtCurrent = plannedProgress[clampedCurrentWeek] || 0;
+                const actualAtCurrent = completedHours;
+
+                if (plannedAtCurrent > 0) {
+                    scheduleVariance = ((actualAtCurrent - plannedAtCurrent) / plannedAtCurrent * 100);
+                    schedulePerformanceIndex = (actualAtCurrent / plannedAtCurrent);
+                } else {
+                    // Si no se planeaba tener progreso aún, pero hay progreso, está adelantado
+                    scheduleVariance = actualAtCurrent > 0 ? 100 : 0;
+                    schedulePerformanceIndex = actualAtCurrent > 0 ? 2.0 : 1.0;
+                }
+
+                // Determinar estado basado en variación
+                if (scheduleVariance > 10) {
+                    projectStatus = 'Muy Adelantado';
+                } else if (scheduleVariance > 5) {
+                    projectStatus = 'Adelantado';
+                } else if (scheduleVariance < -10) {
+                    projectStatus = 'Muy Retrasado';
+                } else if (scheduleVariance < -5) {
+                    projectStatus = 'Atrasado';
+                }
+            }
+
+            return {
+                totalTasks,
+                totalHours,
+                completedTasks,
+                completedHours,
+                progressPercentage: totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0,
+                scheduleVariance,
+                schedulePerformanceIndex,
+                projectStatus,
+                projectStartDate,
+                projectEndDate,
+                totalWeeks,
+                currentWeek,
+                plannedProgress
+            };
+        }
+
+        function renderProject(data, autoDownload = null) {
+            // --- Renderizar Título y Estadísticas ---
+            document.getElementById('project-name').textContent = data.projectName;
+            let totalTasks = 0;
+            let totalHours = 0;
+            let completedTasks = 0;
+            let completedHours = 0;
+            data.phases.forEach(phase => {
+                totalTasks += phase.tasks.length;
+                phase.tasks.forEach(task => {
+                    totalHours += task.durationHours;
+                    if (task.completed) {
+                        completedTasks++;
+                        completedHours += task.durationHours;
+                    }
+                });
+            });
+            document.getElementById('total-tasks').textContent = totalTasks;
+            document.getElementById('total-hours').textContent = Math.round(totalHours);
+            document.getElementById('completed-tasks').textContent = completedTasks;
+            document.getElementById('completed-hours').textContent = Math.round(completedHours);
+            
+            // Calcular y mostrar progreso general
+            const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+            document.getElementById('overall-progress').style.width = progressPercentage + '%';
+            document.getElementById('progress-text').textContent = Math.round(progressPercentage) + '%';
+
+            // --- Renderizar Fechas ---
+            const projectStartDate = data.startDate && typeof data.startDate.toDate === 'function' ? data.startDate.toDate() : new Date(data.startDate);
+
+            // Asegurar consistencia: ambos campos deben mostrar la misma fecha formateada
+            document.getElementById('project-start-date').textContent = formatDateForDisplay(projectStartDate);
+            document.getElementById('start-date-input').valueAsDate = projectStartDate;
+
+            // Cargar configuración del proyecto con valores por defecto
+            document.getElementById('include-saturdays').checked = data.includeSaturdays !== undefined ? data.includeSaturdays : true;
+            document.getElementById('include-sundays').checked = data.includeSundays !== undefined ? data.includeSundays : true;
+            document.getElementById('include-holidays').checked = data.includeHolidays !== undefined ? data.includeHolidays : true;
+            
+            // Cargar configuración del turno con valores por defecto
+            document.getElementById('shift-start-time').value = data.shiftStartTime || '08:00';
+            document.getElementById('shift-end-time').value = data.shiftEndTime || '17:00';
+            document.getElementById('shift-break-hours').value = data.shiftBreakHours !== undefined ? data.shiftBreakHours : 1;
+
+            // Calcular y mostrar fechas del proyecto
+            const lastTask = data.phases[data.phases.length - 1].tasks.slice(-1)[0];
+            const projectEndDate = lastTask.endDate && typeof lastTask.endDate.toDate === 'function' ? lastTask.endDate.toDate() : new Date(lastTask.endDate);
+            const durationDays = Math.ceil((projectEndDate - projectStartDate) / (1000 * 60 * 60 * 24));
+
+            document.getElementById('project-end-date').textContent = formatDateForDisplay(projectEndDate);
+            document.getElementById('project-duration').textContent = durationDays;
+            document.getElementById('project-last-update').textContent = data.lastUpdated && typeof data.lastUpdated.toDate === 'function' ? data.lastUpdated.toDate().toLocaleString() : (data.lastUpdated ? new Date(data.lastUpdated).toLocaleString() : 'N/A');
+
+            // Cargar festivos
+            loadHolidays(data.holidays || []);
+
+            // Mostrar/ocultar lista de festivos según el checkbox
+            toggleHolidaysList();
+
+
+            // --- Renderizar Fases y Tareas ---
+            const phasesContainer = document.getElementById('phases-container');
+            phasesContainer.innerHTML = ''; // Limpiar contenido estático
+            data.phases.forEach((phase, index) => {
+                const phaseEl = document.createElement('div');
+                phaseEl.className = 'phase';
+                
+                let tasksHtml = '';
+                phase.tasks.forEach((task, taskIndex) => {
+                    const isMilestone = task.isMilestone || task.esHito || false;
+                    const isCompleted = task.completed || false;
+                    const startTime = task.startTime || '';
+                    const endTime = task.endTime || '';
+                    tasksHtml +=
+                        '<div class="task ' + (isMilestone ? 'milestone' : '') + (isCompleted ? ' completed' : '') + '">' +
+                            '<div class="task-content">' +
+                                '<div class="task-left">' +
+                                    '<input type="checkbox" class="task-checkbox" data-task-index="' + taskIndex + '" data-phase-index="' + index + '" ' + (isCompleted ? 'checked' : '') + '>' +
+                                    '<div class="task-name">' + task.name + (isMilestone ? ' 🎯' : '') + '</div>' +
+                                '</div>' +
+                                '<div class="task-right">' +
+                                    '<div class="task-details">' +
+                                        '<span class="task-hours">' + task.durationHours + 'h</span>' +
+                                        '<span class="task-dates">' +
+                                            (task.startDate && typeof task.startDate.toDate === 'function' ? task.startDate.toDate().toLocaleDateString() : new Date(task.startDate).toLocaleDateString()) + ' - ' +
+                                            (task.endDate && typeof task.endDate.toDate === 'function' ? task.endDate.toDate().toLocaleDateString() : new Date(task.endDate).toLocaleDateString()) +
+                                        '</span>' +
+                                    '</div>' +
+                                    '<div class="task-times">' +
+                                        '<span class="task-time-label">Hora inicio: <span class="task-start-time-display">' + (startTime || '--:--') + '</span></span>' +
+                                        '<span class="task-time-label">Hora fin: <span class="task-end-time-display">' + (endTime || '--:--') + '</span></span>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>';
+                });
+
+                phaseEl.innerHTML = `
+                    <div class="phase-header phase${(index % 4) + 1}" data-phase-index="${index}">
+                        <div class="phase-number">${index + 1}</div>
+                        <div class="phase-title">${phase.name}</div>
+                        <div class="phase-toggle">▼</div>
+                    </div>
+                    <div class="tasks-timeline">${tasksHtml}</div>
+                `;
+                phasesContainer.appendChild(phaseEl);
+            });
+            
+            // Agregar event listeners para colapsar/expandir fases
+            document.querySelectorAll('.phase-header').forEach(header => {
+                header.addEventListener('click', (e) => {
+                    const phaseEl = header.parentElement;
+                    const isCollapsed = phaseEl.classList.contains('collapsed');
+                    
+                    if (isCollapsed) {
+                        phaseEl.classList.remove('collapsed');
+                        header.classList.remove('collapsed');
+                    } else {
+                        phaseEl.classList.add('collapsed');
+                        header.classList.add('collapsed');
+                    }
+                });
+                
+                // Doble clic para colapsar/expandir todas las fases
+                header.addEventListener('dblclick', (e) => {
+                    e.preventDefault(); // Prevenir el comportamiento por defecto
+                    
+                    const allPhases = document.querySelectorAll('.phase');
+                    const allCollapsed = Array.from(allPhases).every(phase => phase.classList.contains('collapsed'));
+                    
+                    if (allCollapsed) {
+                        // Expandir todas las fases
+                        allPhases.forEach(phase => {
+                            phase.classList.remove('collapsed');
+                            const header = phase.querySelector('.phase-header');
+                            if (header) {
+                                header.classList.remove('collapsed');
+                            }
+                        });
+                    } else {
+                        // Colapsar todas las fases
+                        allPhases.forEach(phase => {
+                            phase.classList.add('collapsed');
+                            const header = phase.querySelector('.phase-header');
+                            if (header) {
+                                header.classList.add('collapsed');
+                            }
+                        });
+                    }
+                });
+            });
+            
+            // Agregar event listeners a los checkboxes
+            document.querySelectorAll('.task-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', async (e) => {
+                    const taskIndex = parseInt(e.target.dataset.taskIndex);
+                    const phaseIndex = parseInt(e.target.dataset.phaseIndex);
+                    const isCompleted = e.target.checked;
+                    
+                    // Aplicar/remover clase visual inmediatamente
+                    const taskElement = e.target.closest('.task');
+                    if (isCompleted) {
+                        taskElement.classList.add('completed');
+                    } else {
+                        taskElement.classList.remove('completed');
+                    }
+                    
+                    try {
+                        // Actualizar el estado de la tarea en Firestore
+                        const params = new URLSearchParams(window.location.search);
+                        const projectId = params.get('id');
+                        const projectRef = db.collection('projects').doc(projectId);
+                        const projectDoc = await projectRef.get();
+                        const projectData = projectDoc.data();
+                        
+                        // Actualizar la tarea específica usando el índice
+                        if (projectData.phases[phaseIndex] && projectData.phases[phaseIndex].tasks[taskIndex]) {
+                            projectData.phases[phaseIndex].tasks[taskIndex].completed = isCompleted;
+                        } else {
+                            console.error('Task not found at phase', phaseIndex, 'task', taskIndex);
+                        }
+                        
+                        // Actualizar lastUpdated
+                        projectData.lastUpdated = firebase.firestore.Timestamp.now();
+                        
+                        await projectRef.update(projectData);
+                        
+                        // Recalcular y actualizar las estadísticas
+                        updateProgressStats(projectData);
+                        
+                        // Actualizar calendario y curva S con los nuevos datos
+                        renderCalendar(projectData);
+                        setupCalendarInteractions(projectData);
+                        renderSCurve(projectData);
+                        
+                    } catch (error) {
+                        console.error('Error al actualizar el estado de la tarea:', error);
+                        // Revertir el cambio del checkbox en caso de error
+                        e.target.checked = !isCompleted;
+                        // Revertir también la clase visual
+                        if (isCompleted) {
+                            taskElement.classList.remove('completed');
+                        } else {
+                            taskElement.classList.add('completed');
+                        }
+                        alert('Error al guardar el cambio. Inténtalo de nuevo.');
+                    }
+                });
+            });
+            
+            // --- Lógica para Gráficos y PDF (se implementará después) ---
+            renderCalendar(data);
+            setupCalendarInteractions(data);
+            renderSCurve(data);
+            const generatePDFFunc = setupPdfDownload(data);
+            
+            // Si se especificó auto-download, descargar el PDF automáticamente
+            if (autoDownload === 'pdf') {
+                // Esperar más tiempo para que se renderice completamente antes de descargar
+                setTimeout(() => {
+                    generatePDFFunc(data);
+                }, 2000);
+            }
+            
+            // Configurar el botón de recalcular fechas
+            setupDateRecalculation(data);
+
+            // Configurar funcionalidad de festivos
+            setupHolidaysFunctionality(data);
+            
+            // Configurar botón de volver a proyectos
+            setupBackToProjectsFunctionality();
+            
+            // Configurar botón de cerrar sesión
+            setupLogoutFunctionality();
+        }
+
+        function calculateWorkingDays(startDate, endDate, config) {
+            let workingDays = 0;
+            const currentDate = new Date(startDate);
+            
+            while (currentDate <= endDate) {
+                const dayOfWeek = currentDate.getDay();
+                const isWeekend = (dayOfWeek === 0 && config.includeSundays) || (dayOfWeek === 6 && config.includeSaturdays);
+                const isHoliday = config.includeHolidays ? isHolidayDate(currentDate, config.holidays) : false;
+                
+                if (!isWeekend && !isHoliday) {
+                    workingDays++;
+                }
+                
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            
+            return workingDays;
+        }
+
+        function addWorkingDays(startDate, workingDays, config) {
+            const resultDate = new Date(startDate);
+            let addedDays = 0;
+            
+            while (addedDays < workingDays) {
+                // Verificar si el día actual es laborable
+                const dayOfWeek = resultDate.getDay();
+                const isWeekend = (dayOfWeek === 0 && config.includeSundays) || (dayOfWeek === 6 && config.includeSaturdays);
+                const isHoliday = config.includeHolidays ? isHolidayDate(resultDate, config.holidays) : false;
+                
+                if (!isWeekend && !isHoliday) {
+                    addedDays++;
+                }
+                
+                // Si aún necesitamos más días, avanzar al siguiente día
+                if (addedDays < workingDays) {
+                    resultDate.setDate(resultDate.getDate() + 1);
+                }
+            }
+            
+            return resultDate;
+        }
+
+        function isHolidayDate(date, holidays) {
+            const dateStr = date.toISOString().split('T')[0];
+            return holidays.some(holiday => {
+                const holidayDate = holiday.date && typeof holiday.date.toDate === 'function' ? holiday.date.toDate() : new Date(holiday.date);
+                return holidayDate.toISOString().split('T')[0] === dateStr;
+            });
+        }
+
+        function loadHolidays(holidays) {
+            const container = document.getElementById('holidays-container');
+            container.innerHTML = '';
+            
+            holidays.forEach((holiday, index) => {
+                const holidayDate = holiday.date && typeof holiday.date.toDate === 'function' ? holiday.date.toDate() : new Date(holiday.date);
+                const holidayItem = document.createElement('div');
+                holidayItem.className = 'holiday-item';
+                holidayItem.innerHTML = `
+                    <input type="date" value="${holidayDate.toISOString().split('T')[0]}" data-index="${index}">
+                    <input type="text" placeholder="Nombre del festivo" value="${holiday.name || ''}" data-index="${index}">
+                    <button type="button" onclick="removeHoliday(${index})">Eliminar</button>
+                `;
+                container.appendChild(holidayItem);
+            });
+        }
+
+        function toggleHolidaysList() {
+            const includeHolidays = document.getElementById('include-holidays').checked;
+            const holidaysList = document.getElementById('holidays-list');
+            holidaysList.style.display = includeHolidays ? 'block' : 'none';
+        }
+
+        function removeHoliday(index) {
+            const container = document.getElementById('holidays-container');
+            const holidayItems = container.querySelectorAll('.holiday-item');
+            if (holidayItems[index]) {
+                holidayItems[index].remove();
+            }
+        }
+
+        function removeHolidayItem(button) {
+            button.parentElement.remove();
+        }
+
+        function updateProgressStats(data) {
+            let totalTasks = 0;
+            let totalHours = 0;
+            let completedTasks = 0;
+            let completedHours = 0;
+            data.phases.forEach(phase => {
+                totalTasks += phase.tasks.length;
+                phase.tasks.forEach(task => {
+                    const taskHours = task.durationHours || task.hours || 0;
+                    totalHours += taskHours;
+                    if (task.completed) {
+                        completedTasks++;
+                        completedHours += taskHours;
+                    }
+                });
+            });
+            
+            document.getElementById('completed-tasks').textContent = completedTasks;
+            document.getElementById('completed-hours').textContent = Math.round(completedHours);
+            
+            const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+            document.getElementById('overall-progress').style.width = progressPercentage + '%';
+            document.getElementById('progress-text').textContent = Math.round(progressPercentage) + '%';
+            
+            // Actualizar última actualización
+            document.getElementById('project-last-update').textContent = data.lastUpdated && typeof data.lastUpdated.toDate === 'function' ? data.lastUpdated.toDate().toLocaleString() : (data.lastUpdated ? new Date(data.lastUpdated).toLocaleString() : 'N/A');
+
+            // Actualizar métricas de rendimiento usando calculateProjectMetrics
+            const metrics = calculateProjectMetrics(data);
+            const { scheduleVariance, schedulePerformanceIndex, projectStatus } = metrics;
+
+            // Mostrar métricas actualizadas
+            if (projectStatus === 'Planificado') {
+                document.getElementById('schedule-variance').textContent = 'N/A';
+                document.getElementById('performance-index').textContent = 'N/A';
+            } else {
+                document.getElementById('schedule-variance').textContent =
+                    (scheduleVariance >= 0 ? '+' : '') + scheduleVariance.toFixed(1) + '%';
+                document.getElementById('performance-index').textContent = schedulePerformanceIndex.toFixed(2);
+            }
+            document.getElementById('project-status').textContent = projectStatus;
+        }
+
+        function renderCalendar(data) {
+            const calendarContainer = document.getElementById('calendar-container');
+
+            // Calcular fechas del proyecto
+            const projectStart = data.startDate && typeof data.startDate.toDate === 'function' ? data.startDate.toDate() : new Date(data.startDate);
+            const lastTask = data.phases[data.phases.length - 1].tasks.slice(-1)[0];
+            const projectEnd = lastTask.endDate && typeof lastTask.endDate.toDate === 'function' ? lastTask.endDate.toDate() : new Date(lastTask.endDate);
+
+            // Calcular número de meses a mostrar (desde el mes de inicio hasta el mes de fin)
+            const startMonth = new Date(projectStart.getFullYear(), projectStart.getMonth(), 1);
+            const endMonth = new Date(projectEnd.getFullYear(), projectEnd.getMonth(), 1);
+            const monthsDiff = (endMonth.getFullYear() - startMonth.getFullYear()) * 12 + (endMonth.getMonth() - startMonth.getMonth()) + 1;
+            const monthsToShow = Math.max(1, Math.min(monthsDiff, 7)); // Máximo 7 meses, mínimo 1
+
+            calendarContainer.innerHTML = '';
+
+            // Generar calendarios para los meses calculados
+            for (let month = 0; month < monthsToShow; month++) {
+                const currentMonth = new Date(startMonth.getFullYear(), startMonth.getMonth() + month, 1);
+                const monthContainer = createMonthCalendar(currentMonth, data);
+                calendarContainer.appendChild(monthContainer);
+            }
+            
+            // Agregar leyenda
+            const legend = document.createElement('div');
+            legend.className = 'calendar-legend';
+            legend.innerHTML = `
+                <div class="legend-calendar-item">
+                    <div class="legend-calendar-color legend-task-start"></div>
+                    <span>Inicio de Tarea Regular</span>
+                </div>
+                <div class="legend-calendar-item">
+                    <div class="legend-calendar-color legend-milestone-start"></div>
+                    <span>Inicio de Hito 🎯</span>
+                </div>
+                <div class="legend-calendar-item">
+                    <div class="legend-calendar-color" style="background: linear-gradient(135deg, #d4edda, #c3e6cb); border: 2px solid #28a745;"></div>
+                    <span>Tarea Completada ✅</span>
+                </div>
+                <div class="legend-calendar-item">
+                    <div class="legend-calendar-color" style="background: linear-gradient(135deg, #f8d7da, #f5c6cb); border: 2px solid #dc3545;"></div>
+                    <span>Festivo</span>
+                </div>
+                <div class="legend-calendar-item">
+                    <div class="task-indicator">T#</div>
+                    <span>Número de Tarea</span>
+                </div>
+                <div class="legend-calendar-item">
+                    <div class="milestone-indicator">H#</div>
+                    <span>Número de Hito</span>
+                </div>
+            `;
+            calendarContainer.appendChild(legend);
+        }
+        
+        function createMonthCalendar(date, data) {
+            const monthContainer = document.createElement('div');
+            monthContainer.className = 'month-container';
+            
+            const monthName = date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+            const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+            const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+            const startDayOfWeek = firstDay.getDay(); // 0 = Domingo, 1 = Lunes, etc.
+            
+            let calendarHtml = `
+                <div class="month-header">${monthName}</div>
+                <div class="calendar-grid">
+                    <div class="calendar-day-header">L</div>
+                    <div class="calendar-day-header">M</div>
+                    <div class="calendar-day-header">M</div>
+                    <div class="calendar-day-header">J</div>
+                    <div class="calendar-day-header">V</div>
+                    <div class="calendar-day-header">S</div>
+                    <div class="calendar-day-header">D</div>
+            `;
+            
+            // Días vacíos al inicio
+            for (let i = 0; i < (startDayOfWeek === 0 ? 6 : startDayOfWeek - 1); i++) {
+                calendarHtml += '<div class="calendar-day other-month"></div>';
+            }
+            
+            // Días del mes
+            for (let day = 1; day <= lastDay.getDate(); day++) {
+                const currentDate = new Date(date.getFullYear(), date.getMonth(), day);
+                const dayTasks = getTasksForDate(currentDate, data);
+                const isToday = currentDate.toDateString() === new Date().toDateString();
+                const holidayInfo = getHolidayInfo(currentDate, data.holidays || []);
+                
+                let dayClass = 'calendar-day';
+                if (isToday) dayClass += ' today';
+                if (holidayInfo.isHoliday) dayClass += ' holiday';
+                
+                let dayContent = `<span class="day-number">${day}</span>`;
+                
+                // Agregar nombre del festivo si es día festivo
+                if (holidayInfo.isHoliday) {
+                    dayContent += `<div class="holiday-name">${holidayInfo.name}</div>`;
+                }
+                
+                if (dayTasks.length > 0) {
+                    dayClass += ' has-task';
+                    if (dayTasks.some(t => t.isMilestone)) dayClass += ' has-milestone';
+                    if (dayTasks.some(t => t.completed)) dayClass += ' has-completed-task';
+                    
+                    // Mostrar indicadores de tareas con tooltips
+                    dayTasks.forEach(task => {
+                        const taskType = task.isMilestone ? 'milestone' : 'regular';
+                        const taskTooltip = `${task.name} (${task.durationHours}h)`;
+                        if (task.isMilestone) {
+                            dayContent += `<div class="milestone-indicator" data-task-tooltip="${taskTooltip}" data-task-id="${task.number}" data-phase-index="${task.phaseIndex}" data-task-index="${task.taskIndex}">${task.number}</div>`;
+                        } else {
+                            dayContent += `<div class="task-indicator" data-task-tooltip="${taskTooltip}" data-task-id="${task.number}" data-phase-index="${task.phaseIndex}" data-task-index="${task.taskIndex}">${task.number}</div>`;
+                        }
+                    });
+                }
+                
+                const tooltip = holidayInfo.isHoliday ? `${currentDate.toLocaleDateString('es-ES')} - ${holidayInfo.name}` : currentDate.toLocaleDateString('es-ES');
+                // Crear fecha en formato YYYY-MM-DD sin zona horaria para evitar problemas
+                const year = currentDate.getFullYear();
+                const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+                const dayStr = String(currentDate.getDate()).padStart(2, '0');
+                const dateStr = `${year}-${month}-${dayStr}`;
+                calendarHtml += `<div class="${dayClass}" data-date="${dateStr}">${dayContent}</div>`;
+            }
+            
+            calendarHtml += '</div>';
+            monthContainer.innerHTML = calendarHtml;
+            return monthContainer;
+        }
+        
+        function getHolidayInfo(date, holidays) {
+            const dateStr = date.toISOString().split('T')[0];
+            for (const holiday of holidays) {
+                const holidayDate = holiday.date && typeof holiday.date.toDate === 'function' ? holiday.date.toDate() : new Date(holiday.date);
+                if (holidayDate.toISOString().split('T')[0] === dateStr) {
+                    return { isHoliday: true, name: holiday.name || 'Festivo' };
+                }
+            }
+            return { isHoliday: false, name: '' };
+        }
+
+        function renderSCurve(data) {
+            const sCurveContainer = document.getElementById('s-curve-chart');
+
+            // Calcular fechas del proyecto
+            const projectStart = data.startDate && typeof data.startDate.toDate === 'function' ? data.startDate.toDate() : new Date(data.startDate);
+            const lastTask = data.phases[data.phases.length - 1].tasks.slice(-1)[0];
+            const projectEnd = lastTask.endDate && typeof lastTask.endDate.toDate === 'function' ? lastTask.endDate.toDate() : new Date(lastTask.endDate);
+            const totalDuration = projectEnd - projectStart;
+
+            // Usar la función centralizada calculateProjectMetrics para obtener todas las métricas
+            const metrics = calculateProjectMetrics(data);
+            const {
+                scheduleVariance,
+                schedulePerformanceIndex,
+                projectStatus,
+                totalTasks,
+                totalHours,
+                completedTasks,
+                completedHours,
+                totalWeeks,
+                currentWeek,
+                plannedProgress
+            } = metrics;
+
+            // Calcular clampedCurrentWeek usando los valores de calculateProjectMetrics
+            const clampedCurrentWeek = Math.max(0, Math.min(metrics.currentWeek, metrics.totalWeeks - 1));
+
+            // Generar datos para la curva S usando los valores de calculateProjectMetrics
+            const projectWeeks = [];
+            const actualProgress = [];
+
+            // Generar projectWeeks y actualProgress basados en las semanas calculadas
+            for (let week = 0; week < totalWeeks; week++) {
+                projectWeeks.push(week + 1);
+
+                // Progreso actual basado en tareas completadas hasta esta semana
+                let actualHoursAtWeek = 0;
+                const weekDate = new Date(metrics.projectStartDate.getTime() + week * 7 * 24 * 60 * 60 * 1000);
+                data.phases.forEach(phase => {
+                    phase.tasks.forEach(task => {
+                        const taskEndDate = task.endDate && typeof task.endDate.toDate === 'function' ? task.endDate.toDate() : new Date(task.endDate);
+                        if (task.completed && taskEndDate <= weekDate) {
+                            actualHoursAtWeek += task.durationHours;
+                        }
+                    });
+                });
+                actualProgress.push(Math.round(actualHoursAtWeek));
+            }
+
+            // Mostrar métricas usando los valores de calculateProjectMetrics
+            if (projectStatus === 'Planificado') {
+                document.getElementById('schedule-variance').textContent = 'N/A';
+                document.getElementById('performance-index').textContent = 'N/A';
+            } else {
+                document.getElementById('schedule-variance').textContent =
+                    (scheduleVariance >= 0 ? '+' : '') + scheduleVariance.toFixed(1) + '%';
+                document.getElementById('performance-index').textContent = schedulePerformanceIndex.toFixed(2);
+            }
+            document.getElementById('project-status').textContent = projectStatus;
+
+            // Crear gráfico con Chart.js mejorado estéticamente
+            // Crear canvas si no existe
+            let canvas = sCurveContainer.querySelector('canvas');
+            if (!canvas) {
+                canvas = document.createElement('canvas');
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+                sCurveContainer.appendChild(canvas);
+            }
+
+            const ctx = canvas.getContext('2d');
+
+            // Destruir gráfico anterior si existe
+            if (window.sCurveChart) {
+                window.sCurveChart.destroy();
+                // Limpiar el contenedor
+                const sCurveContainer = document.getElementById('s-curve-chart');
+                sCurveContainer.innerHTML = '';
+            }
+
+            // CORRECCIÓN: Puntos de referencia para milestones (25%, 50%, 75%, 100%)
+            const milestonePoints = [];
+            for (let percent = 25; percent <= 100; percent += 25) {
+                const targetHours = (percent / 100) * totalHours;
+                let closestIndex = 0;
+                let minDiff = Math.abs(plannedProgress[0] - targetHours);
+
+                for (let i = 1; i < plannedProgress.length; i++) {
+                    const diff = Math.abs(plannedProgress[i] - targetHours);
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        closestIndex = i;
+                    }
+                }
+
+                milestonePoints.push({
+                    x: projectWeeks[closestIndex],
+                    y: plannedProgress[closestIndex],
+                    label: percent + '%'
+                });
+            }
+
+            // CORRECCIÓN: Punto actual con lógica correcta
+            const currentPoint = completedHours > 0 ? [{
+                x: projectWeeks[clampedCurrentWeek],
+                y: completedHours,
+                label: 'ACTUAL'
+            }] : [];
+
+            // Configurar animación inicial desactivada
+            let animationEnabled = false;
+
+            window.sCurveChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: projectWeeks,
+                    datasets: [
+                        {
+                            label: 'Progreso Planificado',
+                            data: plannedProgress,
+                            borderColor: '#2563eb', // Azul más profesional
+                            backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                            borderWidth: 3, // Línea más gruesa
+                            fill: false,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#2563eb',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2
+                        },
+                        {
+                            label: 'Progreso Real',
+                            data: actualProgress,
+                            borderColor: '#16a34a', // Verde más profesional
+                            backgroundColor: 'rgba(22, 163, 74, 0.08)',
+                            borderWidth: 3, // Línea más gruesa
+                            fill: false,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#16a34a',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2
+                        },
+                        {
+                            label: 'Hitos del Proyecto',
+                            data: milestonePoints.map(p => ({ x: p.x, y: p.y })),
+                            borderColor: 'rgba(107, 114, 128, 0.6)',
+                            backgroundColor: '#2563eb',
+                            borderWidth: 2,
+                            borderDash: [6, 4], // Mejor patrón de línea punteada
+                            fill: false,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: '#2563eb',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            showLine: false
+                        },
+                        {
+                            label: 'Punto Actual',
+                            data: currentPoint.map(p => ({ x: p.x, y: p.y })),
+                            borderColor: '#dc2626', // Rojo más profesional
+                            backgroundColor: '#dc2626',
+                            borderWidth: 2,
+                            fill: false,
+                            pointRadius: 7,
+                            pointHoverRadius: 9,
+                            pointBackgroundColor: '#dc2626',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 3,
+                            showLine: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Curva S - Seguimiento del Progreso del Proyecto',
+                            font: {
+                                size: 20, // Título más grande
+                                weight: 'bold',
+                                family: 'Segoe UI, system-ui, sans-serif' // Mejor tipografía
+                            },
+                            padding: {
+                                top: 15,
+                                bottom: 20
+                            },
+                            color: '#1f2937' // Color más oscuro
+                        },
+                        subtitle: {
+                            display: true,
+                            text: `${completedTasks}/${totalTasks} tareas completadas • ${completedHours}/${totalHours} horas • ${Math.round((completedHours/totalHours)*100)}% progreso`,
+                            font: {
+                                size: 14,
+                                style: 'normal',
+                                family: 'Segoe UI, system-ui, sans-serif',
+                                weight: '500'
+                            },
+                            padding: {
+                                bottom: 30
+                            },
+                            color: '#4b5563'
+                        },
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 30,
+                                font: {
+                                    size: 14,
+                                    family: 'Segoe UI, system-ui, sans-serif',
+                                    weight: '500'
+                                },
+                                color: '#1f2937'
+                            }
+                        },
+                        tooltip: {
+                            enabled: true,
+                            backgroundColor: 'rgba(0,0,0,0.9)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#ffffff',
+                            borderColor: 'rgba(255,255,255,0.2)',
+                            borderWidth: 1,
+                            cornerRadius: 10,
+                            displayColors: true,
+                            padding: 14,
+                            titleFont: {
+                                size: 15,
+                                weight: 'bold',
+                                family: 'Segoe UI, system-ui, sans-serif'
+                            },
+                            bodyFont: {
+                                size: 14,
+                                family: 'Segoe UI, system-ui, sans-serif'
+                            },
+                            callbacks: {
+                                title: function(context) {
+                                    return 'Semana ' + context[0].label;
+                                },
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    label += context.parsed.y + ' horas';
+
+                                    // Agregar información adicional para puntos especiales
+                                    if (context.datasetIndex === 2) { // Hitos
+                                        const milestoneIndex = context.dataIndex;
+                                        if (milestonePoints[milestoneIndex]) {
+                                            label += ' (' + milestonePoints[milestoneIndex].label + ' planificado)';
+                                        }
+                                    } else if (context.datasetIndex === 3) { // Punto actual
+                                        const currentPercent = Math.round((completedHours / totalHours) * 100);
+                                        label += ' (' + currentPercent + '% completado)';
+                                    }
+
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Semanas del Proyecto',
+                                font: {
+                                    size: 16,
+                                    weight: 'bold',
+                                    family: 'Segoe UI, system-ui, sans-serif'
+                                },
+                                color: '#1f2937'
+                            },
+                            grid: {
+                                display: true,
+                                color: 'rgba(0,0,0,0.06)',
+                                lineWidth: 1
+                            },
+                            ticks: {
+                                maxTicksLimit: 12,
+                                font: {
+                                    size: 13,
+                                    family: 'Segoe UI, system-ui, sans-serif',
+                                    weight: '500'
+                                },
+                                color: '#374151',
+                                callback: function(value, index) {
+                                    return 'S' + this.getLabelForValue(value);
+                                }
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Horas Acumuladas',
+                                font: {
+                                    size: 16,
+                                    weight: 'bold',
+                                    family: 'Segoe UI, system-ui, sans-serif'
+                                },
+                                color: '#1f2937'
+                            },
+                            grid: {
+                                display: true,
+                                color: 'rgba(0,0,0,0.06)',
+                                lineWidth: 1
+                            },
+                            ticks: {
+                                font: {
+                                    size: 13,
+                                    family: 'Segoe UI, system-ui, sans-serif',
+                                    weight: '500'
+                                },
+                                color: '#374151',
+                                callback: function(value) {
+                                    return value + 'h';
+                                }
+                            },
+                            beginAtZero: true
+                        }
+                    },
+                    elements: {
+                        point: {
+                            hoverRadius: 8,
+                            hoverBorderWidth: 3
+                        },
+                        line: {
+                            borderCapStyle: 'round',
+                            borderJoinStyle: 'round'
+                        }
+                    },
+                    animation: {
+                        duration: animationEnabled ? 2000 : 0, // Animación solo cuando está habilitada
+                        easing: 'easeInOutQuart',
+                        delay: animationEnabled ? function(context) {
+                            return context.dataIndex * 80; // Delay más gradual cuando anima
+                        } : 0
+                    }
+                },
+                plugins: [{
+                    id: 'customLabels',
+                    afterDraw: function(chart) {
+                        const ctx = chart.ctx;
+                        ctx.save();
+
+                        // Dibujar etiquetas para progreso planificado (debajo de la línea)
+                        const plannedDataset = chart.getDatasetMeta(0);
+                        if (plannedDataset.data.length > 0) {
+                            // Mostrar etiquetas cada 6 semanas para mejor legibilidad
+                            for (let i = 0; i < plannedDataset.data.length; i += 6) {
+                                const dataPoint = plannedDataset.data[i];
+                                if (dataPoint) {
+                                    const x = dataPoint.x;
+                                    const y = dataPoint.y + 10; // Más espacio debajo
+                                    ctx.fillStyle = '#2563eb';
+                                    ctx.font = '12px Segoe UI, system-ui, sans-serif';
+                                    ctx.textAlign = 'center';
+                                    ctx.fillText(plannedProgress[i] + 'h', x, y);
+                                }
+                            }
+                        }
+
+                        // Dibujar etiquetas para progreso real (encima de la línea)
+                        const actualDataset = chart.getDatasetMeta(1);
+                        if (actualDataset.data.length > 0) {
+                            // Mostrar etiquetas cada 6 semanas para mejor legibilidad
+                            for (let i = 0; i < actualDataset.data.length; i += 6) {
+                                const dataPoint = actualDataset.data[i];
+                                if (dataPoint && actualProgress[i] > 0) { // Solo mostrar si hay progreso
+                                    const x = dataPoint.x;
+                                    const y = dataPoint.y - 10; // Más espacio encima
+                                    ctx.fillStyle = '#16a34a';
+                                    ctx.font = '12px Segoe UI, system-ui, sans-serif';
+                                    ctx.textAlign = 'center';
+                                    ctx.fillText(actualProgress[i] + 'h', x, y);
+                                }
+                            }
+                        }
+
+                        // Dibujar etiquetas personalizadas para milestones (25%, 50%, 75%, 100%)
+                        milestonePoints.forEach((point, index) => {
+                            const meta = chart.getDatasetMeta(2);
+                            const dataPoint = meta.data[index];
+                            if (dataPoint) {
+                                const x = dataPoint.x;
+                                const y = dataPoint.y - 20;
+                                ctx.fillStyle = '#1f2937';
+                                ctx.font = 'bold 14px Segoe UI, system-ui, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText(point.label, x, y);
+                                ctx.fillStyle = '#2563eb';
+                                ctx.font = '13px Segoe UI, system-ui, sans-serif';
+                                ctx.fillText(Math.round(point.y) + 'h', x, y + 20);
+                            }
+                        });
+
+                        // Dibujar etiqueta para punto actual
+                        if (currentPoint.length > 0) {
+                            const meta = chart.getDatasetMeta(3);
+                            const dataPoint = meta.data[0];
+                            if (dataPoint) {
+                                const x = dataPoint.x;
+                                const y = dataPoint.y - 25;
+                                ctx.fillStyle = '#1f2937';
+                                ctx.font = 'bold 15px Segoe UI, system-ui, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('ACTUAL', x, y);
+                                const currentPercent = Math.round((completedHours / totalHours) * 100);
+                                ctx.fillStyle = '#dc2626';
+                                ctx.font = '14px Segoe UI, system-ui, sans-serif';
+                                ctx.fillText(currentPercent + '% (' + completedHours + 'h)', x, y + 20);
+                                ctx.fillStyle = '#6b7280';
+                                ctx.font = '12px Segoe UI, system-ui, sans-serif';
+                                ctx.fillText('Sem ' + projectWeeks[clampedCurrentWeek], x, y + 35);
+                            }
+                        }
+
+                        ctx.restore();
+                    }
+                }]
+            });
+            
+            // Configurar Intersection Observer para animar cuando entra en el viewport
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting && !animationEnabled) {
+                        animationEnabled = true;
+                        // Actualizar las opciones de animación y re-renderizar
+                        window.sCurveChart.options.animation = {
+                            duration: 2000,
+                            easing: 'easeInOutQuart',
+                            delay: function(context) {
+                                return context.dataIndex * 80;
+                            }
+                        };
+                        window.sCurveChart.update();
+                    }
+                });
+            }, {
+                threshold: 0.3, // Activar cuando el 30% del elemento es visible
+                rootMargin: '0px 0px -50px 0px' // Margen para activar antes de que llegue completamente
+            });
+
+            // Observar el contenedor del gráfico
+            observer.observe(sCurveContainer);
+        }
+
+        function drawPDFSCurve(canvas, data) {
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+
+            // Calcular el factor de escala (asumiendo que el canvas está escalado)
+            const scaleFactor = ctx.getTransform ? ctx.getTransform().a : 1;
+            const actualWidth = width / scaleFactor;
+            const actualHeight = height / scaleFactor;
+
+            const padding = 80;
+            const chartWidth = actualWidth - 2 * padding;
+            const chartHeight = actualHeight - 2 * padding - 120; // Más espacio para la leyenda inferior
+
+            // Limpiar canvas con fondo blanco
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, actualWidth, actualHeight);
+
+            // Configurar estilos de ultra alta calidad
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // Calcular fechas del proyecto
+            const projectStart = data.startDate && typeof data.startDate.toDate === 'function' ? data.startDate.toDate() : new Date(data.startDate);
+            const lastTask = data.phases[data.phases.length - 1].tasks.slice(-1)[0];
+            const projectEnd = lastTask.endDate && typeof lastTask.endDate.toDate === 'function' ? lastTask.endDate.toDate() : new Date(lastTask.endDate);
+            const totalDuration = projectEnd - projectStart;
+
+            // Usar la función centralizada calculateProjectMetrics para obtener todas las métricas
+            const pdfChartMetrics = calculateProjectMetrics(data);
+            const totalHours = pdfChartMetrics.totalHours;
+            const completedHours = pdfChartMetrics.completedHours;
+            const totalTasks = pdfChartMetrics.totalTasks;
+            const completedTasks = pdfChartMetrics.completedTasks;
+            const plannedProgress = pdfChartMetrics.plannedProgress;
+            const totalWeeks = pdfChartMetrics.totalWeeks;
+            const scheduleVariance = pdfChartMetrics.scheduleVariance;
+            const schedulePerformanceIndex = pdfChartMetrics.schedulePerformanceIndex;
+            const projectStatus = pdfChartMetrics.projectStatus;
+            const clampedCurrentWeek = Math.max(0, Math.min(pdfChartMetrics.currentWeek, pdfChartMetrics.totalWeeks - 1));
+
+            // Generar datos para la curva S real (específico del gráfico PDF)
+            const projectWeeks = [];
+            const actualProgress = [];
+
+            // CORRECCIÓN: El bucle debe ir de 0 a totalWeeks-1 para tener exactamente totalWeeks semanas
+            for (let week = 0; week < totalWeeks; week++) {
+                projectWeeks.push(week + 1);
+
+                // Progreso actual basado en tareas completadas hasta esta semana
+                let actualHoursAtWeek = 0;
+                const weekDate = new Date(projectStart.getTime() + week * 7 * 24 * 60 * 60 * 1000);
+                data.phases.forEach(phase => {
+                    phase.tasks.forEach(task => {
+                        const taskEndDate = task.endDate && typeof task.endDate.toDate === 'function' ? task.endDate.toDate() : new Date(task.endDate);
+                        if (task.completed && taskEndDate <= weekDate) {
+                            actualHoursAtWeek += task.durationHours;
+                        }
+                    });
+                });
+                actualProgress.push(Math.round(actualHoursAtWeek));
+            }
+
+            // Dibujar grid simple
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+
+            // Grid vertical
+            for (let i = 0; i <= 10; i++) {
+                const x = padding + (i * chartWidth / 10);
+                ctx.beginPath();
+                ctx.moveTo(x, padding);
+                ctx.lineTo(x, padding + chartHeight);
+                ctx.stroke();
+            }
+
+            // Grid horizontal
+            for (let i = 0; i <= 10; i++) {
+                const y = padding + chartHeight - (i * chartHeight / 10);
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(padding + chartWidth, y);
+                ctx.stroke();
+            }
+
+            // Títulos de los ejes
+            ctx.fillStyle = '#333333';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Curva S - Progreso del Proyecto', actualWidth / 2, 30);
+
+            // Eje X (semanas)
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Semanas del Proyecto', actualWidth / 2, actualHeight - 20);
+
+            // Eje Y (horas)
+            ctx.save();
+            ctx.translate(20, actualHeight / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Horas Acumuladas', 0, 0);
+            ctx.restore();
+
+            // Etiquetas del eje X (semanas)
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#666666';
+            for (let i = 0; i <= 10; i++) {
+                const x = padding + (i * chartWidth / 10);
+                const weekNum = Math.round((i / 10) * totalWeeks);
+                if (weekNum <= totalWeeks) {
+                    ctx.fillText('S' + weekNum, x, actualHeight - 45);
+                }
+            }
+
+            // Etiquetas del eje Y (horas)
+            ctx.textAlign = 'right';
+            for (let i = 0; i <= 10; i++) {
+                const y = padding + chartHeight - (i * chartHeight / 10);
+                const hours = Math.round((i / 10) * totalHours);
+                ctx.fillText(hours + 'h', padding - 10, y + 4);
+            }
+
+            // Dibujar curva planificada (azul)
+            if (plannedProgress && plannedProgress.length > 0) {
+                ctx.strokeStyle = '#2563eb';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                
+                let firstPoint = true;
+                for (let i = 0; i < plannedProgress.length; i++) {
+                    const x = padding + (i / (plannedProgress.length - 1)) * chartWidth;
+                    const y = padding + chartHeight - (plannedProgress[i] / totalHours) * chartHeight;
+                    
+                    if (firstPoint) {
+                        ctx.moveTo(x, y);
+                        firstPoint = false;
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.stroke();
+
+                // Puntos de milestones en la curva planificada
+                ctx.fillStyle = '#2563eb';
+                for (let percent = 25; percent <= 100; percent += 25) {
+                    const targetHours = (percent / 100) * totalHours;
+                    let closestIndex = 0;
+                    let minDiff = Math.abs(plannedProgress[0] - targetHours);
+
+                    for (let i = 1; i < plannedProgress.length; i++) {
+                        const diff = Math.abs(plannedProgress[i] - targetHours);
+                        if (diff < minDiff) {
+                            minDiff = diff;
+                            closestIndex = i;
+                        }
+                    }
+
+                    const x = padding + (closestIndex / (plannedProgress.length - 1)) * chartWidth;
+                    const y = padding + chartHeight - (plannedProgress[closestIndex] / totalHours) * chartHeight;
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, 6, 0, 2 * Math.PI);
+                    ctx.fill();
+
+                    // Etiqueta del milestone
+                    ctx.fillStyle = '#1f2937';
+                    ctx.font = 'bold 10px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(percent + '%', x, y - 15);
+                    ctx.fillStyle = '#2563eb';
+                }
+            }
+
+            // Dibujar curva real (verde)
+            if (actualProgress && actualProgress.length > 0) {
+                ctx.strokeStyle = '#16a34a';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                
+                let firstPoint = true;
+                for (let i = 0; i < actualProgress.length; i++) {
+                    if (actualProgress[i] > 0) {
+                        const x = padding + (i / (actualProgress.length - 1)) * chartWidth;
+                        const y = padding + chartHeight - (actualProgress[i] / totalHours) * chartHeight;
+                        
+                        if (firstPoint) {
+                            ctx.moveTo(x, y);
+                            firstPoint = false;
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                }
+                ctx.stroke();
+
+                // Punto actual (rojo)
+                if (completedHours > 0) {
+                    const currentWeekProgress = clampedCurrentWeek;
+                    const x = padding + (currentWeekProgress / (actualProgress.length - 1)) * chartWidth;
+                    const y = padding + chartHeight - (completedHours / totalHours) * chartHeight;
+                    
+                    ctx.fillStyle = '#dc2626';
+                    ctx.beginPath();
+                    ctx.arc(x, y, 8, 0, 2 * Math.PI);
+                    ctx.fill();
+
+                    // Etiqueta del punto actual
+                    ctx.fillStyle = '#1f2937';
+                    ctx.font = 'bold 12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('ACTUAL', x, y - 20);
+                    ctx.font = '10px Arial';
+                    const currentPercent = Math.round((completedHours / totalHours) * 100);
+                    ctx.fillText(currentPercent + '% (' + completedHours + 'h)', x, y - 5);
+                }
+            }
+
+            // Leyenda en la parte inferior
+            const legendY = actualHeight - 120;
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'left';
+            
+            // Progreso Planificado (azul)
+            ctx.fillStyle = '#2563eb';
+            ctx.fillRect(padding, legendY, 20, 3);
+            ctx.fillStyle = '#1f2937';
+            ctx.fillText('Progreso Planificado', padding + 30, legendY + 10);
+
+            // Progreso Real (verde)
+            ctx.fillStyle = '#16a34a';
+            ctx.fillRect(padding + 200, legendY, 20, 3);
+            ctx.fillStyle = '#1f2937';
+            ctx.fillText('Progreso Real', padding + 230, legendY + 10);
+
+            // Punto Actual (rojo)
+            ctx.fillStyle = '#dc2626';
+            ctx.beginPath();
+            ctx.arc(padding + 400 + 10, legendY + 1, 6, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.fillStyle = '#1f2937';
+            ctx.fillText('Punto Actual', padding + 430, legendY + 10);
+
+            // Información del proyecto en la leyenda
+            ctx.font = '10px Arial';
+            ctx.fillText(`${completedTasks}/${totalTasks} tareas completadas • ${completedHours}/${totalHours} horas • ${Math.round((completedHours/totalHours)*100)}% progreso`, padding, legendY + 35);
+            
+            // Estado del proyecto
+            ctx.fillText(`Estado: ${projectStatus} | Variación: ${scheduleVariance.toFixed(1)}% | Rendimiento: ${schedulePerformanceIndex.toFixed(2)}`, padding, legendY + 55);
+        }
+
+        function drawPDFSCurve(canvas, data) {
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+
+            // Calcular el factor de escala (asumiendo que el canvas está escalado)
+            const scaleFactor = ctx.getTransform ? ctx.getTransform().a : 1;
+            const actualWidth = width / scaleFactor;
+            const actualHeight = height / scaleFactor;
+
+            const padding = 80;
+            const chartWidth = actualWidth - 2 * padding;
+            const chartHeight = actualHeight - 2 * padding - 120; // Más espacio para la leyenda inferior
+
+            // Limpiar canvas con fondo blanco
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, actualWidth, actualHeight);
+
+            // Configurar estilos de ultra alta calidad
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // Calcular fechas del proyecto
+            const projectStart = data.startDate && typeof data.startDate.toDate === 'function' ? data.startDate.toDate() : new Date(data.startDate);
+            const lastTask = data.phases[data.phases.length - 1].tasks.slice(-1)[0];
+            const projectEnd = lastTask.endDate && typeof lastTask.endDate.toDate === 'function' ? lastTask.endDate.toDate() : new Date(lastTask.endDate);
+            const totalDuration = projectEnd - projectStart;
+
+            // Usar la función centralizada calculateProjectMetrics para obtener todas las métricas
+            const pdfChartMetrics = calculateProjectMetrics(data);
+            const totalHours = pdfChartMetrics.totalHours;
+            const completedHours = pdfChartMetrics.completedHours;
+            const totalTasks = pdfChartMetrics.totalTasks;
+            const completedTasks = pdfChartMetrics.completedTasks;
+            const plannedProgress = pdfChartMetrics.plannedProgress;
+            const totalWeeks = pdfChartMetrics.totalWeeks;
+            const scheduleVariance = pdfChartMetrics.scheduleVariance;
+            const schedulePerformanceIndex = pdfChartMetrics.schedulePerformanceIndex;
+            const projectStatus = pdfChartMetrics.projectStatus;
+            const clampedCurrentWeek = Math.max(0, Math.min(pdfChartMetrics.currentWeek, pdfChartMetrics.totalWeeks - 1));
+
+            // Generar datos para la curva S real (específico del gráfico PDF)
+            const projectWeeks = [];
+            const actualProgress = [];
+
+            // CORRECCIÓN: El bucle debe ir de 0 a totalWeeks-1 para tener exactamente totalWeeks semanas
+            for (let week = 0; week < totalWeeks; week++) {
+                projectWeeks.push(week + 1);
+
+                // Progreso actual basado en tareas completadas hasta esta semana
+                let actualHoursAtWeek = 0;
+                const weekDate = new Date(projectStart.getTime() + week * 7 * 24 * 60 * 60 * 1000);
+                data.phases.forEach(phase => {
+                    phase.tasks.forEach(task => {
+                        const taskEndDate = task.endDate && typeof task.endDate.toDate === 'function' ? task.endDate.toDate() : new Date(task.endDate);
+                        if (task.completed && taskEndDate <= weekDate) {
+                            actualHoursAtWeek += task.durationHours;
+                        }
+                    });
+                });
+                actualProgress.push(Math.round(actualHoursAtWeek));
+            }
+
+            // Dibujar grid simple
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+
+            // Grid vertical
+            for (let i = 0; i <= 10; i++) {
+                const x = padding + (i * chartWidth / 10);
+                ctx.beginPath();
+                ctx.moveTo(x, padding);
+                ctx.lineTo(x, padding + chartHeight);
+                ctx.stroke();
+            }
+
+            // Grid horizontal
+            for (let i = 0; i <= 10; i++) {
+                const y = padding + chartHeight - (i * chartHeight / 10);
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(padding + chartWidth, y);
+                ctx.stroke();
+            }
+
+            // Ejes principales
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(padding, padding + chartHeight);
+            ctx.lineTo(padding + chartWidth, padding + chartHeight);
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, padding + chartHeight);
+            ctx.stroke();
+
+            // Etiquetas del eje Y (Horas)
+            ctx.fillStyle = '#666';
+            ctx.textAlign = 'right';
+            ctx.font = '12px Arial';
+            for (let i = 0; i <= 10; i++) {
+                const y = padding + chartHeight - (i * chartHeight / 10);
+                const value = Math.round((i * totalHours / 10));
+                ctx.fillText(value + 'h', padding - 15, y + 5);
+            }
+
+            // Etiquetas del eje X (Semanas)
+            ctx.textAlign = 'center';
+            ctx.font = '12px Arial';
+            ctx.fillStyle = '#666';
+            for (let i = 0; i < projectWeeks.length; i += Math.ceil(projectWeeks.length / 10)) {
+                const x = padding + (i * chartWidth / (projectWeeks.length - 1));
+                ctx.fillText('S' + projectWeeks[i], x, padding + chartHeight + 25);
+            }
+
+            // Dibujar curva planificada
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            for (let i = 0; i < plannedProgress.length; i++) {
+                const x = padding + (i * chartWidth / (plannedProgress.length - 1));
+                const y = padding + chartHeight - (plannedProgress[i] * chartHeight / totalHours);
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+
+            // Dibujar curva real
+            ctx.strokeStyle = '#27ae60';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            let lastActualIndex = 0;
+            for (let i = 0; i < actualProgress.length; i++) {
+                if (actualProgress[i] > 0) {
+                    lastActualIndex = i;
+                }
+                const x = padding + (i * chartWidth / (actualProgress.length - 1));
+                const y = padding + chartHeight - (actualProgress[i] * chartHeight / totalHours);
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+
+            // CORRECCIÓN: Puntos de referencia para milestones (25%, 50%, 75%, 100%)
+            const milestonePoints = [];
+            for (let percent = 25; percent <= 100; percent += 25) {
+                const targetHours = (percent / 100) * totalHours;
+                let closestIndex = 0;
+                let minDiff = Math.abs(plannedProgress[0] - targetHours);
+
+                for (let i = 1; i < plannedProgress.length; i++) {
+                    const diff = Math.abs(plannedProgress[i] - targetHours);
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        closestIndex = i;
+                    }
+                }
+
+                milestonePoints.push({
+                    x: projectWeeks[closestIndex],
+                    y: plannedProgress[closestIndex],
+                    label: percent + '%'
+                });
+            }
+
+            // CORRECCIÓN: Punto actual con lógica correcta
+            const currentPoint = completedHours > 0 ? [{
+                x: projectWeeks[clampedCurrentWeek],
+                y: completedHours,
+                label: 'ACTUAL'
+            }] : [];
+
+            // Dibujar puntos de milestones
+            milestonePoints.forEach((point, index) => {
+                const x = padding + ((point.x - 1) * chartWidth / (projectWeeks.length - 1));
+                const y = padding + chartHeight - (point.y * chartHeight / totalHours);
+                
+                // Dibujar punto
+                ctx.fillStyle = '#2563eb';
+                ctx.beginPath();
+                ctx.arc(x, y, 6, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                // Dibujar etiqueta
+                ctx.fillStyle = '#1f2937';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(point.label, x, y - 15);
+                ctx.fillStyle = '#2563eb';
+                ctx.font = '13px Arial';
+                ctx.fillText(Math.round(point.y) + 'h', x, y + 25);
+            });
+
+            // Dibujar punto actual
+            if (currentPoint.length > 0) {
+                const point = currentPoint[0];
+                const x = padding + ((point.x - 1) * chartWidth / (projectWeeks.length - 1));
+                const y = padding + chartHeight - (point.y * chartHeight / totalHours);
+                
+                // Dibujar punto
+                ctx.fillStyle = '#e74c3c';
+                ctx.beginPath();
+                ctx.arc(x, y, 8, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                // Dibujar etiqueta
+                ctx.fillStyle = '#1f2937';
+                ctx.font = 'bold 15px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('ACTUAL', x, y - 25);
+                const currentPercent = Math.round((completedHours / totalHours) * 100);
+                ctx.fillStyle = '#dc2626';
+                ctx.font = '14px Arial';
+                ctx.fillText(currentPercent + '% (' + completedHours + 'h)', x, y - 5);
+                ctx.fillStyle = '#6b7280';
+                ctx.font = '12px Arial';
+                ctx.fillText('Sem ' + point.x, x, y + 15);
+            }
+
+            // Leyenda en la parte inferior
+            const legendY = actualHeight - 80;
+            const legendItems = [
+                { color: '#3498db', label: 'Progreso Planificado' },
+                { color: '#27ae60', label: 'Progreso Real' },
+                { color: '#e74c3c', label: 'Punto Actual' }
+            ];
+
+            // Configuración de columnas centradas
+            const legendStartX = padding;
+            const columnWidth = chartWidth / 3;
+
+            legendItems.forEach((item, index) => {
+                const x = legendStartX + (index * columnWidth) + (columnWidth / 2);
+                const y = legendY;
+
+                // Símbolo del elemento más grande
+                if (item.color !== '#e74c3c') {
+                    ctx.strokeStyle = item.color;
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.moveTo(x - 25, y);
+                    ctx.lineTo(x + 25, y);
+                    ctx.stroke();
+                } else {
+                    ctx.fillStyle = item.color;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 8, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+
+                // Texto del elemento más grande
+                ctx.fillStyle = '#2c3e50';
+                ctx.font = '14px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(item.label, x, y + 25);
+            });
+
+            // Título del gráfico
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 18px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Curva S - Seguimiento del Progreso del Proyecto', actualWidth / 2, 35);
+
+            // Subtítulo con información del proyecto y métricas
+            ctx.fillStyle = '#666';
+            ctx.font = '14px Arial';
+            const progressPercent = Math.round((completedHours/totalHours)*100);
+            const varianceText = projectStatus === 'Planificado' ? 'N/A' :
+                (scheduleVariance >= 0 ? '+' + scheduleVariance.toFixed(1) + '%' : scheduleVariance.toFixed(1) + '%');
+            const spiText = projectStatus === 'Planificado' ? 'N/A' : schedulePerformanceIndex.toFixed(2);
+
+            ctx.fillText(`${completedTasks}/${totalTasks} tareas • ${completedHours}/${totalHours} horas • ${progressPercent}% • ${projectStatus}`, actualWidth / 2, 60);
+            ctx.fillText(`Variación: ${varianceText} • SPI: ${spiText}`, actualWidth / 2, 80);
+        }
+    </script>
+
+    <script>
+        // Funcionalidad del botón flotante de navegación
+        document.addEventListener('DOMContentLoaded', function() {
+            const navBtn = document.getElementById('floatingNavBtn');
+            const navMenu = document.getElementById('floatingNavMenu');
+            
+            if (navBtn && navMenu) {
+                navBtn.addEventListener('click', function(e) {
+                    navMenu.style.display = navMenu.style.display === 'block' ? 'none' : 'block';
+                });
+                
+                // Cerrar menú al hacer click fuera
+                document.addEventListener('click', function(e) {
+                    if (!navBtn.contains(e.target)) {
+                        navMenu.style.display = 'none';
+                    }
+                });
+                
+                // Scroll suave al hacer clic en los enlaces
+                navMenu.querySelectorAll('a').forEach(function(link) {
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const target = document.querySelector(this.getAttribute('href'));
+                        if (target) {
+                            target.scrollIntoView({ behavior: 'smooth' });
+                            navMenu.style.display = 'none';
+                        }
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generar Proyecto - PDT Futura</title>
+    <!-- SheetJS for Excel/CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: radial-gradient(ellipse at center, #0f0f23 0%, #000000 100%);
+            color: white;
+            padding: 20px;
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { text-align: center; margin-bottom: 20px; }
+        .form-section {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .btn {
+            padding: 10px 20px; border-radius: 5px; border: none; cursor: pointer;
+            background-color: #2575fc; color: white; font-weight: bold;
+        }
+        input[type="text"], input[type="file"], input[type="date"] {
+            width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ccc;
+            background-color: #333; color: white;
+        }
+        .checkbox-group label { margin-right: 15px; }
+
+        /* Calendar Styles */
+        #holiday-calendar { display:none; margin-top: 10px; background: #2a2a3a; padding: 10px; border-radius: 5px; }
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
+        .calendar-grid div { padding: 5px; border-radius: 3px; }
+        .day-name { font-weight: bold; font-size: 0.8em; }
+        .day-number { cursor: pointer; }
+        .day-number:hover { background-color: #4a4a5a; }
+        .day-number.selected { background-color: #2575fc; color: white; }
+        #loading-spinner { display: none; text-align: center; margin-top: 15px; }
+        #loading-spinner progress { width: 100%; margin-top: 5px; }
+        #authorized-users-list { list-style: none; padding: 0; margin-top: 10px; }
+        #authorized-users-list li { background: #333; padding: 5px; border-radius: 3px; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container" id="main-content" style="display: none;">
+        <h1>Generar Nuevo Proyecto</h1>
+
+        <div class="form-section">
+            <h2>1. Generar Plantilla</h2>
+            <p>Descargue la plantilla para llenar los datos del proyecto.</p>
+            <button id="generate-template" class="btn">Generar Plantilla (CSV)</button>
+        </div>
+
+        <div class="form-section">
+            <h2>2. Configurar Proyecto</h2>
+            <label for="project-name">Nombre del Proyecto:</label>
+            <input type="text" id="project-name" placeholder="Ingrese el nombre del proyecto" required>
+            
+            <label for="project-start-date">Fecha de Inicio del Proyecto:</label>
+            <input type="date" id="project-start-date" required>
+
+            <div class="checkbox-group">
+                <p>Omitir en cálculo de fechas:</p>
+                <label><input type="checkbox" id="skip-saturday"> Sábados</label>
+                <label><input type="checkbox" id="skip-sunday" checked> Domingos</label>
+                <label><input type="checkbox" id="skip-holidays"> Festivos</label>
+            </div>
+            
+            <div id="holiday-calendar">
+                <div class="calendar-header">
+                    <button id="prev-month" class="btn">&lt;</button>
+                    <h3 id="month-year"></h3>
+                    <button id="next-month" class="btn">&gt;</button>
+                </div>
+                <div class="calendar-grid" id="calendar-days"></div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2>3. Usuarios Autorizados</h2>
+            <p>Agregue los correos de los usuarios que tendrán acceso a este proyecto. El administrador tiene acceso por defecto.</p>
+            <input type="email" id="user-email-input" placeholder="correo@ejemplo.com">
+            <button id="add-user-btn" class="btn">Agregar Usuario</button>
+            <ul id="authorized-users-list"></ul>
+        </div>
+
+        <div class="form-section">
+            <h2>4. Cargar Archivo del Proyecto</h2>
+            <p>Seleccione el archivo CSV/Excel con los datos del proyecto.</p>
+            <input type="file" id="project-file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" required>
+            <button id="load-project" class="btn">Cargar y Crear Proyecto</button>
+            <div id="loading-spinner">
+                <p>Creando proyecto...</p>
+                <progress id="creation-progress" value="0" max="100"></progress>
+                <p id="progress-status"></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBX1H8MaD6eoIo0jbpVRKO-fGtND3PthlI",
+            authDomain: "pdt-futura.firebaseapp.com",
+            projectId: "pdt-futura",
+            storageBucket: "pdt-futura.firebasestorage.app",
+            messagingSenderId: "807986666483",
+            appId: "1:807986666483:web:d1f1ecabe7076c2f2bd086"
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        let authorizedUsers = new Set(['admin@gnce.com']);
+
+        auth.onAuthStateChanged(user => {
+            if (user && user.email === 'admin@gnce.com') {
+                document.getElementById('main-content').style.display = 'block';
+            } else {
+                alert('Acceso denegado. Solo los administradores pueden acceder a esta página.');
+                window.location.href = 'proyectos.html';
+            }
+        });
+
+        document.getElementById('generate-template').addEventListener('click', () => {
+            const headers = "Tarea,Duracion (Hora),Hito";
+            const examplePhase1 = '"Fase 1: Etapa de analisis",,';
+            const exampleTask1 = 'revisar,7,x';
+            const exampleTask2 = 'analizar,9,';
+            const exampleTask3 = 'reportar,4,';
+            const examplePhase2 = '"Fase 2: Etapa de analisis viabilidad",,';
+            const exampleTask4 = 'evaluar tecnologia,4,';
+
+            const csvContent = [headers, examplePhase1, exampleTask1, exampleTask2, exampleTask3, examplePhase2, exampleTask4].join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", "plantilla_proyecto_simple.csv");
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        });
+
+        // --- User Management Logic ---
+        const userEmailInput = document.getElementById('user-email-input');
+        const addUserBtn = document.getElementById('add-user-btn');
+        const usersListEl = document.getElementById('authorized-users-list');
+
+        function renderAuthorizedUsers() {
+            usersListEl.innerHTML = '';
+            authorizedUsers.forEach(email => {
+                const li = document.createElement('li');
+                li.textContent = email;
+                usersListEl.appendChild(li);
+            });
+        }
+
+        addUserBtn.addEventListener('click', () => {
+            const email = userEmailInput.value.trim();
+            if (email) {
+                authorizedUsers.add(email.toLowerCase());
+                userEmailInput.value = '';
+                renderAuthorizedUsers();
+            }
+        });
+
+        // --- Calendar Logic ---
+        const skipHolidaysCheckbox = document.getElementById('skip-holidays');
+        const holidayCalendar = document.getElementById('holiday-calendar');
+        const monthYearEl = document.getElementById('month-year');
+        const calendarDaysEl = document.getElementById('calendar-days');
+        let currentDate = new Date();
+        let selectedHolidays = new Set();
+
+        skipHolidaysCheckbox.addEventListener('change', (e) => {
+            holidayCalendar.style.display = e.target.checked ? 'block' : 'none';
+        });
+
+        function renderCalendar() {
+            const month = currentDate.getMonth();
+            const year = currentDate.getFullYear();
+            monthYearEl.textContent = `${currentDate.toLocaleString('es-ES', { month: 'long' })} ${year}`;
+            
+            calendarDaysEl.innerHTML = '';
+            const dayNames = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+            dayNames.forEach(name => {
+                const dayNameEl = document.createElement('div');
+                dayNameEl.className = 'day-name';
+                dayNameEl.textContent = name;
+                calendarDaysEl.appendChild(dayNameEl);
+            });
+
+            const firstDayOfMonth = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            for (let i = 0; i < firstDayOfMonth; i++) {
+                calendarDaysEl.appendChild(document.createElement('div'));
+            }
+
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dayEl = document.createElement('div');
+                dayEl.className = 'day-number';
+                dayEl.textContent = i;
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                if (selectedHolidays.has(dateStr)) {
+                    dayEl.classList.add('selected');
+                }
+                dayEl.addEventListener('click', () => {
+                    if (selectedHolidays.has(dateStr)) {
+                        selectedHolidays.delete(dateStr);
+                        dayEl.classList.remove('selected');
+                    } else {
+                        selectedHolidays.add(dateStr);
+                        dayEl.classList.add('selected');
+                    }
+                });
+                calendarDaysEl.appendChild(dayEl);
+            }
+        }
+        document.getElementById('prev-month').addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        });
+        document.getElementById('next-month').addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        });
+        renderCalendar(); // Initial render
+        renderAuthorizedUsers(); // Show admin by default
+
+        // --- Project Loading Logic ---
+        document.getElementById('load-project').addEventListener('click', async () => {
+            const projectName = document.getElementById('project-name').value;
+            // Usar valueAsDate para obtener un objeto Date directamente, evitando problemas de formato
+            const startDateInput = document.getElementById('project-start-date').valueAsDate;
+            const projectFile = document.getElementById('project-file').files[0];
+
+            if (!projectName || !startDateInput || !projectFile) {
+                alert('Por favor, complete todos los campos: Nombre, Fecha de Inicio y Archivo.');
+                return;
+            }
+            
+            // Ajustar la fecha a la hora de inicio de la jornada en la zona horaria local
+            const startDate = new Date(startDateInput.getFullYear(), startDateInput.getMonth(), startDateInput.getDate(), 9, 0, 0, 0);
+
+            document.getElementById('loading-spinner').style.display = 'block';
+            const progressBar = document.getElementById('creation-progress');
+            const progressStatus = document.getElementById('progress-status');
+
+            try {
+                let json;
+                
+                // Determinar si es un archivo CSV o Excel basado en la extensión
+                const fileName = projectFile.name.toLowerCase();
+                const isCSV = fileName.endsWith('.csv');
+                
+                if (isCSV) {
+                    // Para archivos CSV, usar FileReader con codificación UTF-8
+                    const text = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.onerror = reject;
+                        reader.readAsText(projectFile, 'UTF-8');
+                    });
+                    
+                    // Parsear CSV manualmente manteniendo la codificación UTF-8
+                    const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+                    json = lines.map(line => {
+                        const result = [];
+                        let current = '';
+                        let inQuotes = false;
+                        
+                        for (let i = 0; i < line.length; i++) {
+                            const char = line[i];
+                            if (char === '"') {
+                                if (inQuotes && line[i + 1] === '"') {
+                                    current += '"';
+                                    i++; // skip next quote
+                                } else {
+                                    inQuotes = !inQuotes;
+                                }
+                            } else if (char === ',' && !inQuotes) {
+                                result.push(current);
+                                current = '';
+                            } else {
+                                current += char;
+                            }
+                        }
+                        result.push(current);
+                        return result;
+                    });
+                } else {
+                    // Para archivos Excel, usar SheetJS
+                    const data = await projectFile.arrayBuffer();
+                    const workbook = XLSX.read(data);
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                }
+
+                const headerRow = json.find(row => row.some(cell => typeof cell === 'string' && cell.toLowerCase().includes('tarea')));
+                const headerIndex = headerRow ? json.indexOf(headerRow) : -1;
+
+                if (headerIndex === -1) {
+                    throw new Error("No se encontró una fila de encabezado que contenga la palabra 'Tarea'.");
+                }
+
+                // Dynamically find column indices based on header text
+                const colIndices = {};
+                headerRow.forEach((header, index) => {
+                    const h = String(header || '').toLowerCase();
+                    if (h.includes('tarea')) colIndices.name = index;
+                    if (h.includes('duracion')) colIndices.durationHours = index;
+                    if (h.includes('hito')) colIndices.isMilestone = index;
+                });
+
+                if (colIndices.name === undefined || colIndices.durationHours === undefined || colIndices.isMilestone === undefined) {
+                    throw new Error("La fila de encabezado debe contener las columnas 'Tarea', 'Duracion (Hora)' y 'Hito'.");
+                }
+
+                const rowsToProcess = json.slice(headerIndex + 1).filter(row => row && row.length > 0 && row.some(cell => cell !== null && cell !== ''));
+                
+                progressBar.max = rowsToProcess.length;
+                progressBar.value = 0;
+                progressStatus.textContent = 'Iniciando...';
+
+                const projectData = {
+                    projectName: projectName,
+                    createdAt: firebase.firestore.Timestamp.fromDate(new Date()),
+                    startDate: firebase.firestore.Timestamp.fromDate(startDate),
+                    phases: [],
+                    authorizedUsers: Array.from(authorizedUsers),
+                    settings: {
+                        skipSaturday: document.getElementById('skip-saturday').checked,
+                        skipSunday: document.getElementById('skip-sunday').checked,
+                        holidays: Array.from(selectedHolidays)
+                    }
+                };
+
+                let currentPhase = null;
+                for (const row of rowsToProcess) {
+                    const firstCell = String(row[0] || '').trim();
+                    const isPhaseRow = firstCell.toLowerCase().startsWith('fase');
+
+                    if (isPhaseRow) {
+                        if (currentPhase) {
+                            projectData.phases.push(currentPhase);
+                        }
+                        currentPhase = { name: firstCell, tasks: [] };
+                    } else if (row[colIndices.name] && String(row[colIndices.name]).trim() !== '') {
+                        // This is a task row if the task name is not empty
+                        if (!currentPhase) {
+                            // If a task appears before any phase is defined, create a default phase.
+                            currentPhase = { name: 'General', tasks: [] };
+                        }
+                        const rawDuration = row[colIndices.durationHours];
+                        const parsedDuration = Number(String(rawDuration).replace(',', '.'));
+                        const task = {
+                            name: row[colIndices.name] || '',
+                            durationHours: isFinite(parsedDuration) && parsedDuration >= 0 ? parsedDuration : 0,
+                            isMilestone: (String(row[colIndices.isMilestone] || '').toLowerCase() === 'x')
+                        };
+                        currentPhase.tasks.push(task);
+                    }
+                }
+                // Add the last phase to the project
+                if (currentPhase) {
+                    projectData.phases.push(currentPhase);
+                }
+
+                // Calculate task dates
+                calculateAllTaskDates(projectData);
+
+                // *** DEBUG: Imprimir el objeto antes de guardar ***
+                console.log("Datos que se enviarán a Firestore:", JSON.stringify(projectData, null, 2));
+
+                // Generate ID and save to Firestore
+                const d = new Date();
+                const projectId = `${String(d.getDate()).padStart(2, '0')}${String(d.getMonth() + 1).padStart(2, '0')}${d.getFullYear()}${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}`;
+
+                // Try to write and capture detailed errors
+                try {
+                    // Enable additional debug logging if available
+                    try {
+                        if (firebase && firebase.firestore && typeof firebase.firestore.setLogLevel === 'function') {
+                            firebase.firestore.setLogLevel('debug');
+                        }
+                    } catch (e) {
+                        console.warn('No se pudo activar setLogLevel:', e);
+                    }
+
+                    await db.collection('projects').doc(projectId).set(projectData);
+
+                    alert(`Proyecto "${projectName}" creado con éxito.`);
+                    window.location.href = `proyectos.html`;
+                } catch (writeError) {
+                    // Show detailed error info in console and in-page
+                    console.error('Error durante write() a Firestore:', writeError);
+
+                    // Try to surface useful HTTP response info if present
+                    const errorDetails = {
+                        message: writeError && writeError.message ? writeError.message : String(writeError),
+                        stack: writeError && writeError.stack ? writeError.stack : null,
+                    };
+
+                    // If the error has additional fields (some SDK internal objects), include them
+                    if (writeError && typeof writeError === 'object') {
+                        for (const k of Object.keys(writeError)) {
+                            try { errorDetails[k] = writeError[k]; } catch (e) { /* ignore */ }
+                        }
+                    }
+
+                    // Render an error box in the UI with copyable text
+                    let errorBox = document.getElementById('firestore-error-box');
+                    if (!errorBox) {
+                        errorBox = document.createElement('div');
+                        errorBox.id = 'firestore-error-box';
+                        errorBox.style.background = '#ffdddd';
+                        errorBox.style.color = '#600';
+                        errorBox.style.padding = '10px';
+                        errorBox.style.border = '1px solid #900';
+                        errorBox.style.borderRadius = '6px';
+                        errorBox.style.marginTop = '10px';
+                        const parent = document.querySelector('.form-section:last-of-type') || document.body;
+                        parent.appendChild(errorBox);
+                    }
+
+                    errorBox.innerText = 'Error al guardar en Firestore: ' + (errorDetails.message || 'Unknown error') + '\n\nDetalles:\n' + JSON.stringify(errorDetails, null, 2);
+
+                    alert('Ocurrió un error al intentar guardar en Firestore. Revise la consola y el cuadro de error en la página.');
+                }
+
+            } catch (error) {
+                console.error("Error al crear el proyecto:", error);
+                alert("Ocurrió un error al procesar el archivo. Revise la consola para más detalles.");
+            } finally {
+                document.getElementById('loading-spinner').style.display = 'none';
+            }
+        });
+
+        function calculateAllTaskDates(projectData) {
+            const options = projectData.settings;
+            let lastEndDate = new Date(projectData.startDate.toDate());
+
+            projectData.phases.forEach(phase => {
+                phase.tasks.forEach(task => {
+                    // La fecha de inicio de una tarea es el final de la anterior,
+                    // ajustada al próximo momento hábil.
+                    const taskStartDate = moveToNextWorkableMoment(new Date(lastEndDate), options);
+                    task.startDate = firebase.firestore.Timestamp.fromDate(taskStartDate);
+                    
+                    const taskEndDate = getEndDate(new Date(taskStartDate), task.durationHours, options);
+                    task.endDate = firebase.firestore.Timestamp.fromDate(taskEndDate);
+                    
+                    lastEndDate = taskEndDate;
+                });
+            });
+        }
+
+        // =================================================================================
+        // NEW DATE CALCULATION LOGIC
+        // =================================================================================
+
+        const WORK_DAY_START_HOUR = 9;
+        const WORK_DAY_END_HOUR = 17;
+
+        /**
+         * Checks if a given date is a workday (not a weekend or holiday).
+         * @param {Date} date - The date to check.
+         * @param {object} options - Scheduling options.
+         * @returns {boolean} - True if it's a workday.
+         */
+        function isWorkDay(date, options) {
+            // Use local date components to match the UI calendar and user expectations
+            const { skipSaturday, skipSunday, holidays } = options;
+            const day = date.getDay(); // local day: 0 (Sunday) - 6 (Saturday)
+
+            if (skipSunday && day === 0) return false;
+            if (skipSaturday && day === 6) return false;
+
+            if (holidays && holidays.length > 0) {
+                const year = date.getFullYear();
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const dayOfMonth = date.getDate().toString().padStart(2, '0');
+                const dateString = `${year}-${month}-${dayOfMonth}`;
+
+                if (holidays.includes(dateString)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /**
+         * Moves a date to the beginning of the next workable moment.
+         * - If it's a non-workday, it moves to the start of the next workday.
+         * - If it's after work hours, it moves to the start of the next workday.
+         * - If it's before work hours on a workday, it moves to the start of that workday.
+         * @param {Date} date - The initial date.
+         * @param {object} options - Scheduling options.
+         * @returns {Date} - The adjusted date.
+         */
+        function moveToNextWorkableMoment(date, options) {
+            // Work in local time and round to minute precision
+            let newDate = new Date(date);
+
+            // If current time is AT or after work hours, start from the next day at start hour
+            if (newDate.getHours() >= WORK_DAY_END_HOUR) {
+                newDate.setDate(newDate.getDate() + 1);
+                newDate.setHours(WORK_DAY_START_HOUR, 0, 0, 0);
+            }
+
+            // Skip any non-workdays (weekends/holidays)
+            while (!isWorkDay(newDate, options)) {
+                newDate.setDate(newDate.getDate() + 1);
+                newDate.setHours(WORK_DAY_START_HOUR, 0, 0, 0);
+            }
+
+            // If it's a workday but before work hours, adjust to the start hour.
+            if (newDate.getHours() < WORK_DAY_START_HOUR) {
+                newDate.setHours(WORK_DAY_START_HOUR, 0, 0, 0);
+            }
+
+            return newDate;
+        }
+
+        /**
+         * Calculates the end date of a task given a start date and duration.
+         * @param {Date} startDate - The start date of the task.
+         * @param {number} durationHours - The duration of the task in hours.
+         * @param {object} options - Scheduling options.
+         * @returns {Date} - The calculated end date.
+         */
+        function getEndDate(startDate, durationHours, options) {
+            // Accept fractional hours (e.g., 0.5 = 30 minutes)
+            const duration = Number(durationHours);
+            if (!isFinite(duration) || duration < 0) {
+                // Invalid duration: treat as zero-length
+                return new Date(startDate);
+            }
+
+            if (duration === 0) {
+                return new Date(startDate);
+            }
+
+            // Convert total duration to minutes for fine-grained calculation
+            let remainingMinutes = Math.round(duration * 60);
+            let currentDate = new Date(startDate);
+
+            while (remainingMinutes > 0) {
+                currentDate = moveToNextWorkableMoment(currentDate, options);
+
+                const currentHour = currentDate.getHours();
+                const currentMinute = currentDate.getMinutes();
+                const minutesLeftInDay = (WORK_DAY_END_HOUR - currentHour) * 60 - currentMinute;
+
+                if (minutesLeftInDay <= 0) {
+                    // Move to next workday start
+                    currentDate.setDate(currentDate.getDate() + 1);
+                    currentDate.setHours(WORK_DAY_START_HOUR, 0, 0, 0);
+                    continue;
+                }
+
+                const minutesToConsume = Math.min(remainingMinutes, minutesLeftInDay);
+                currentDate.setMinutes(currentMinute + minutesToConsume);
+                remainingMinutes -= minutesToConsume;
+            }
+
+            return currentDate;
+        }
+    </script>
+</body>
+</html>
