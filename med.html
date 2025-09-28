@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía Completa de Métricas - Sistema PDT Futura</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 210mm;
+            margin: 0 auto;
+            background: white;
+            font-size: 12pt;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            max-width: 150px;
+            height: auto;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #1f2937;
+            font-size: 28pt;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        h2 {
+            color: #2563eb;
+            font-size: 18pt;
+            margin: 25px 0 15px 0;
+            border-left: 4px solid #2563eb;
+            padding-left: 15px;
+        }
+
+        h3 {
+            color: #374151;
+            font-size: 14pt;
+            margin: 20px 0 10px 0;
+        }
+
+        .formula-box {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12pt;
+        }
+
+        .interpretation-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 11pt;
+        }
+
+        .interpretation-table th,
+        .interpretation-table td {
+            border: 1px solid #d1d5db;
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        .interpretation-table th {
+            background: #f3f4f6;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .example-box {
+            background: #ecfdf5;
+            border-left: 4px solid #10b981;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .status-states {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .status-card {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            background: white;
+        }
+
+        .status-card h4 {
+            color: #1f2937;
+            margin: 0 0 10px 0;
+            font-size: 13pt;
+        }
+
+        .status-card p {
+            margin: 0;
+            color: #6b7280;
+            font-size: 11pt;
+        }
+
+        .metrics-summary {
+            background: #f0f9ff;
+            border: 2px solid #0ea5e9;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .metrics-summary h3 {
+            color: #0c4a6e;
+            margin-top: 0;
+        }
+
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e5e7eb;
+            text-align: center;
+            color: #6b7280;
+            font-size: 10pt;
+        }
+
+        .page-break {
+            page-break-before: always;
+        }
+
+        .no-break {
+            page-break-inside: avoid;
+        }
+
+        .highlight {
+            background: #fef3c7;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        .important {
+            color: #dc2626;
+            font-weight: bold;
+        }
+
+        @media print {
+            body {
+                font-size: 11pt;
+            }
+
+            .header {
+                margin-bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="logo_2025web.png" alt="Logo PDT Futura" class="logo" onerror="this.style.display='none'">
+        <h1>Sistema PDT Futura</h1>
+        <h2 style="border: none; padding-left: 0; color: #6b7280; font-size: 16pt;">Guía Completa de Métricas de Gestión de Proyectos</h2>
+        <p style="color: #6b7280; font-size: 12pt; margin: 10px 0;">Fecha de generación: 28 de septiembre de 2025</p>
+    </div>
+
+    <div class="metrics-summary">
+        <h3>📊 Resumen Ejecutivo de Métricas</h3>
+        <p>Esta guía explica las métricas fundamentales utilizadas en el Sistema PDT Futura para medir y controlar el rendimiento de los proyectos. Estas métricas permiten identificar desviaciones del plan, evaluar la eficiencia del cronograma y determinar el estado actual del proyecto.</p>
+
+        <h4>Métricas Principales:</h4>
+        <ul>
+            <li><strong>SV (Schedule Variance)</strong> - Variación de Cronograma</li>
+            <li><strong>SPI (Schedule Performance Index)</strong> - Índice de Rendimiento del Cronograma</li>
+            <li><strong>Estado del Proyecto</strong> - Clasificación general del rendimiento</li>
+        </ul>
+    </div>
+
+    <h2>1. Variación de Cronograma (SV)</h2>
+
+    <h3>¿Qué es la Variación de Cronograma?</h3>
+    <p>La Variación de Cronograma (SV) es una métrica fundamental que mide cuánto se desvía el progreso real del proyecto respecto al progreso planificado. Es una medida cuantitativa que indica si el proyecto está adelantado o atrasado respecto al plan original.</p>
+
+    <h3>Fórmula de Cálculo</h3>
+    <div class="formula-box">
+        <strong>SV = Progreso Real - Progreso Planificado</strong><br><br>
+        <strong>SV(%) = ((Progreso Real - Progreso Planificado) / Progreso Planificado) × 100</strong>
+    </div>
+
+    <h3>Interpretación de los Valores</h3>
+    <table class="interpretation-table">
+        <thead>
+            <tr>
+                <th>Valor SV</th>
+                <th>Significado</th>
+                <th>Estado del Proyecto</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="highlight">SV > 0</td>
+                <td>El proyecto va mejor que lo planeado</td>
+                <td style="color: #059669; font-weight: bold;">ADELANTE</td>
+            </tr>
+            <tr>
+                <td class="highlight">SV = 0</td>
+                <td>El proyecto sigue exactamente el plan</td>
+                <td style="color: #0891b2; font-weight: bold;">A TIEMPO</td>
+            </tr>
+            <tr>
+                <td class="highlight">SV < 0</td>
+                <td>El proyecto va peor que lo planeado</td>
+                <td style="color: #dc2626; font-weight: bold;">ATRASADO</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="example-box">
+        <h4>📝 Ejemplo Práctico:</h4>
+        <p>Supongamos que en el proyecto se tenía planeado completar <strong>100 horas de trabajo</strong> esta semana, pero el equipo completó <strong>120 horas</strong>.</p>
+
+        <div class="formula-box">
+            SV = 120 - 100 = <strong>+20 horas</strong><br>
+            SV(%) = (20/100) × 100 = <strong>+20%</strong>
+        </div>
+
+        <p class="important">Resultado: El proyecto está 20% adelantado respecto al plan establecido.</p>
+    </div>
+
+    <h2>2. Índice de Rendimiento del Cronograma (SPI)</h2>
+
+    <h3>¿Qué es el Índice de Rendimiento?</h3>
+    <p>El Índice de Rendimiento del Cronograma (SPI) mide la eficiencia con la que el proyecto está cumpliendo con el cronograma. Es un índice adimensional que compara el trabajo realizado con el trabajo planificado, expresado como un multiplicador del rendimiento esperado.</p>
+
+    <h3>Fórmula de Cálculo</h3>
+    <div class="formula-box">
+        <strong>SPI = Progreso Real / Progreso Planificado</strong>
+    </div>
+
+    <h3>Interpretación de los Valores</h3>
+    <table class="interpretation-table">
+        <thead>
+            <tr>
+                <th>Valor SPI</th>
+                <th>Significado</th>
+                <th>Eficiencia</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="highlight">SPI > 1.0</td>
+                <td>Completando más trabajo del planeado</td>
+                <td style="color: #059669; font-weight: bold;">SUPEREFICIENTE</td>
+            </tr>
+            <tr>
+                <td class="highlight">SPI = 1.0</td>
+                <td>Según lo planeado exactamente</td>
+                <td style="color: #0891b2; font-weight: bold;">EFICIENTE</td>
+            </tr>
+            <tr>
+                <td class="highlight">SPI < 1.0</td>
+                <td>Completando menos trabajo del planeado</td>
+                <td style="color: #dc2626; font-weight: bold;">INEFICIENTE</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="example-box">
+        <h4>📝 Ejemplo Práctico:</h4>
+        <p>Si se tenía planeado completar 100 horas pero se completaron 120 horas:</p>
+
+        <div class="formula-box">
+            SPI = 120 / 100 = <strong>1.2</strong>
+        </div>
+
+        <p class="important">Resultado: El proyecto está rindiendo al 120% de lo esperado (20% más eficiente).</p>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2>3. Relación entre SV y SPI</h2>
+
+    <p>Ambas métricas están matemáticamente relacionadas. Cuando la Variación de Cronograma (SV) es positiva, el Índice de Rendimiento (SPI) es mayor que 1.0, y viceversa. Esta relación permite una evaluación consistente del rendimiento del proyecto.</p>
+
+    <h3>Tabla Comparativa SV vs SPI</h3>
+    <table class="interpretation-table">
+        <thead>
+            <tr>
+                <th>Variación (SV)</th>
+                <th>Índice (SPI)</th>
+                <th>Estado</th>
+                <th>Interpretación</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>+25%</td>
+                <td>1.25</td>
+                <td style="color: #059669; font-weight: bold;">Muy Adelantado</td>
+                <td>25% más rápido de lo planeado</td>
+            </tr>
+            <tr>
+                <td>+8%</td>
+                <td>1.08</td>
+                <td style="color: #059669; font-weight: bold;">Adelantado</td>
+                <td>Ligeramente por delante del plan</td>
+            </tr>
+            <tr>
+                <td>0%</td>
+                <td>1.0</td>
+                <td style="color: #0891b2; font-weight: bold;">En Tiempo</td>
+                <td>Según el plan establecido</td>
+            </tr>
+            <tr>
+                <td>-8%</td>
+                <td>0.92</td>
+                <td style="color: #d97706; font-weight: bold;">Atrasado</td>
+                <td>Ligeramente retrasado</td>
+            </tr>
+            <tr>
+                <td>-25%</td>
+                <td>0.75</td>
+                <td style="color: #dc2626; font-weight: bold;">Muy Retrasado</td>
+                <td>25% más lento de lo planeado</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>4. Estados del Proyecto</h2>
+
+    <p>El Estado del Proyecto es una clasificación general que combina las métricas SV y SPI para dar una evaluación rápida y comprensible del rendimiento del proyecto. Esta clasificación ayuda a los gestores a tomar decisiones informadas sobre acciones correctivas.</p>
+
+    <div class="status-states">
+        <div class="status-card">
+            <h4 style="color: #6b7280;">📅 Planificado</h4>
+            <p>Proyecto con fecha de inicio futura y sin progreso completado. No se pueden calcular métricas de rendimiento porque el proyecto aún no ha comenzado.</p>
+        </div>
+
+        <div class="status-card">
+            <h4 style="color: #059669;">🚀 Muy Adelantado</h4>
+            <p>SV > 10% (variación positiva mayor al 10%). El proyecto está significativamente por delante del plan establecido.</p>
+        </div>
+
+        <div class="status-card">
+            <h4 style="color: #059669;">✅ Adelantado</h4>
+            <p>SV > 5% y SV ≤ 10% (variación positiva entre 5% y 10%). El proyecto va ligeramente por delante del cronograma.</p>
+        </div>
+
+        <div class="status-card">
+            <h4 style="color: #0891b2;">⏰ En Tiempo</h4>
+            <p>SV entre -5% y +5% (variación mínima). El proyecto sigue el plan establecido con mínimas desviaciones.</p>
+        </div>
+
+        <div class="status-card">
+            <h4 style="color: #d97706;">⚠️ Atrasado</h4>
+            <p>SV < -5% y SV ≥ -10% (variación negativa entre -5% y -10%). El proyecto tiene un retraso moderado.</p>
+        </div>
+
+        <div class="status-card">
+            <h4 style="color: #dc2626;">🚨 Muy Retrasado</h4>
+            <p>SV < -10% (variación negativa mayor al 10%). El proyecto tiene un retraso significativo que requiere atención inmediata.</p>
+        </div>
+    </div>
+
+    <h2>5. Aplicación Práctica en PDT Futura</h2>
+
+    <h3>Cómo se Calculan las Métricas</h3>
+    <p>El Sistema PDT Futura calcula automáticamente estas métricas basándose en:</p>
+    <ul>
+        <li><strong>Horas Planificadas</strong>: Total de horas que deberían haberse completado hasta la fecha actual según el cronograma.</li>
+        <li><strong>Horas Reales</strong>: Total de horas efectivamente completadas por las tareas marcadas como finalizadas.</li>
+        <li><strong>Fecha Actual</strong>: Fecha del sistema comparada con la fecha de inicio del proyecto.</li>
+        <li><strong>Duración Total</strong>: Tiempo total planificado para completar todas las tareas del proyecto.</li>
+    </ul>
+
+    <h3>Interpretación de Resultados</h3>
+    <div class="example-box">
+        <h4>📊 Ejemplo de Proyecto Real:</h4>
+        <p>Un proyecto de 500 horas totales, iniciado hace 4 semanas de un total de 10 semanas:</p>
+        <ul>
+            <li><strong>Horas planificadas hasta ahora:</strong> 200 horas (40% del proyecto)</li>
+            <li><strong>Horas realmente completadas:</strong> 180 horas</li>
+            <li><strong>SV = 180 - 200 = -20 horas (-10%)</strong></li>
+            <li><strong>SPI = 180 / 200 = 0.9</strong></li>
+            <li><strong>Estado: Atrasado</strong></li>
+        </ul>
+        <p class="important">Interpretación: El proyecto va 10% por detrás del plan, completando el 90% de lo esperado.</p>
+    </div>
+
+    <h2>6. Acciones Recomendadas por Estado</h2>
+
+    <table class="interpretation-table">
+        <thead>
+            <tr>
+                <th>Estado del Proyecto</th>
+                <th>Acciones Recomendadas</th>
+                <th>Prioridad</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Planificado</td>
+                <td>Monitorear fecha de inicio, preparar recursos</td>
+                <td style="color: #0891b2;">Baja</td>
+            </tr>
+            <tr>
+                <td>Muy Adelantado</td>
+                <td>Revisar alcance, considerar agregar tareas o mejorar calidad</td>
+                <td style="color: #0891b2;">Media</td>
+            </tr>
+            <tr>
+                <td>Adelantado</td>
+                <td>Continuar monitoreo, documentar lecciones aprendidas</td>
+                <td style="color: #0891b2;">Baja</td>
+            </tr>
+            <tr>
+                <td>En Tiempo</td>
+                <td>Continuar según plan establecido</td>
+                <td style="color: #0891b2;">Baja</td>
+            </tr>
+            <tr>
+                <td>Atrasado</td>
+                <td>Analizar causas, implementar acciones correctivas</td>
+                <td style="color: #d97706;">Alta</td>
+            </tr>
+            <tr>
+                <td>Muy Retrasado</td>
+                <td>Revisión inmediata, posible replanificación, comunicación con stakeholders</td>
+                <td style="color: #dc2626;">Crítica</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="page-break"></div>
+
+    <h2>7. Referencias y Estándares</h2>
+
+    <p>Las métricas implementadas en el Sistema PDT Futura están basadas en estándares internacionales de gestión de proyectos:</p>
+
+    <h3>Estándares de Referencia</h3>
+    <ul>
+        <li><strong>PMBOK® Guide</strong> - Project Management Body of Knowledge (6ª y 7ª edición)</li>
+        <li><strong>EVM (Earned Value Management)</strong> - Gestión del Valor Ganado</li>
+        <li><strong>ISO 21500</strong> - Guidance on project management</li>
+        <li><strong>PRINCE2®</strong> - Projects IN Controlled Environments</li>
+    </ul>
+
+    <h3>Fórmulas Estándar EVM</h3>
+    <div class="formula-box">
+        <strong>SV = EV - PV</strong> (Earned Value - Planned Value)<br>
+        <strong>SPI = EV / PV</strong> (Earned Value / Planned Value)<br>
+        <strong>CPI = EV / AC</strong> (Earned Value / Actual Cost)
+    </div>
+
+    <p>Donde:</p>
+    <ul>
+        <li><strong>EV (Earned Value)</strong> = Valor ganado (trabajo completado)</li>
+        <li><strong>PV (Planned Value)</strong> = Valor planificado (trabajo que debería estar completado)</li>
+        <li><strong>AC (Actual Cost)</strong> = Costo real (costos incurridos)</li>
+    </ul>
+
+    <h2>8. Glosario de Términos</h2>
+
+    <table class="interpretation-table">
+        <thead>
+            <tr>
+                <th>Término</th>
+                <th>Definición</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Baseline</strong></td>
+                <td>Plan aprobado del proyecto que sirve como referencia para medir el rendimiento</td>
+            </tr>
+            <tr>
+                <td><strong>Curva S</strong></td>
+                <td>Gráfico que muestra el progreso acumulado del proyecto a lo largo del tiempo</td>
+            </tr>
+            <tr>
+                <td><strong>Earned Value</strong></td>
+                <td>Valor del trabajo efectivamente completado, medido en unidades monetarias o horas</td>
+            </tr>
+            <tr>
+                <td><strong>Milestone</strong></td>
+                <td>Hito importante del proyecto que marca la finalización de una fase significativa</td>
+            </tr>
+            <tr>
+                <td><strong>Planned Value</strong></td>
+                <td>Valor del trabajo que debería haberse completado según el plan del proyecto</td>
+            </tr>
+            <tr>
+                <td><strong>Schedule Variance</strong></td>
+                <td>Diferencia entre el progreso real y el progreso planificado</td>
+            </tr>
+            <tr>
+                <td><strong>Schedule Performance Index</strong></td>
+                <td>Índice que mide la eficiencia del cumplimiento del cronograma</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <p><strong>Sistema PDT Futura - Gestión Integral de Proyectos</strong></p>
+        <p>Desarrollado por Gómez Fredy SAP | gomez.fredy.sap@gmail.com | +57 3203284420</p>
+        <p>Documento generado: 28 de septiembre de 2025</p>
+        <p style="font-size: 9pt; color: #9ca3af; margin-top: 10px;">
+            Este documento es propiedad del Sistema PDT Futura y contiene información confidencial sobre las métricas de gestión de proyectos.
+        </p>
+    </div>
+</body>
+</html></content>
+<parameter name="filePath">p:\Mx SAP PM Familia\PDTFutura\code\guia_metricas_completa.html
