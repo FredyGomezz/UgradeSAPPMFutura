@@ -2718,16 +2718,69 @@
             });
         }
 
+        // Función helper para convertir fechas de manera segura
+        function safeDateConversion(dateValue) {
+            if (!dateValue) return null;
+            
+            try {
+                if (typeof dateValue.toDate === 'function') {
+                    // Es un Timestamp de Firestore
+                    return dateValue.toDate();
+                } else {
+                    // Es una cadena o número
+                    const date = new Date(dateValue);
+                    return isNaN(date.getTime()) ? null : date;
+                }
+            } catch (error) {
+                console.warn('Error convirtiendo fecha:', dateValue, error);
+                return null;
+            }
+        }
+
+        // Función helper para formatear fechas de manera segura para inputs HTML
+        function safeDateFormatForInput(dateValue) {
+            const date = safeDateConversion(dateValue);
+            if (!date) return ''; // Input vacío en lugar de 'N/A' para inputs de tipo date
+            
+            try {
+                return date.toISOString().split('T')[0];
+            } catch (error) {
+                console.warn('Error formateando fecha para input:', date, error);
+                return '';
+            }
+        }
+
+        // Función helper para formatear fechas de manera segura para display
+        function safeDateFormat(dateValue, format = 'date') {
+            const date = safeDateConversion(dateValue);
+            if (!date) return 'N/A';
+            
+            try {
+                if (format === 'date') {
+                    return date.toISOString().split('T')[0];
+                } else if (format === 'datetime') {
+                    return date.toLocaleString('es-ES');
+                } else if (format === 'date-short') {
+                    return date.toLocaleDateString('es-ES');
+                }
+                return date.toISOString();
+            } catch (error) {
+                console.warn('Error formateando fecha:', date, error);
+                return 'N/A';
+            }
+        }
+
         function loadHolidays(holidays) {
             const container = document.getElementById('holidays-container');
             container.innerHTML = '';
             
             holidays.forEach((holiday, index) => {
-                const holidayDate = holiday.date && typeof holiday.date.toDate === 'function' ? holiday.date.toDate() : new Date(holiday.date);
+                const dateValue = safeDateFormatForInput(holiday.date);
+                
                 const holidayItem = document.createElement('div');
                 holidayItem.className = 'holiday-item';
                 holidayItem.innerHTML = `
-                    <input type="date" value="${holidayDate.toISOString().split('T')[0]}" data-index="${index}">
+                    <input type="date" value="${dateValue}" data-index="${index}">
                     <input type="text" placeholder="Nombre del festivo" value="${holiday.name || ''}" data-index="${index}">
                     <button type="button" onclick="removeHoliday(${index})">Eliminar</button>
                 `;
@@ -2927,10 +2980,12 @@
         }
         
         function getHolidayInfo(date, holidays) {
-            const dateStr = date.toISOString().split('T')[0];
+            const dateStr = safeDateFormat(date, 'date');
+            if (dateStr === 'N/A') return { isHoliday: false, name: '' };
+            
             for (const holiday of holidays) {
-                const holidayDate = holiday.date && typeof holiday.date.toDate === 'function' ? holiday.date.toDate() : new Date(holiday.date);
-                if (holidayDate.toISOString().split('T')[0] === dateStr) {
+                const holidayDateStr = safeDateFormat(holiday.date, 'date');
+                if (holidayDateStr !== 'N/A' && holidayDateStr === dateStr) {
                     return { isHoliday: true, name: holiday.name || 'Festivo' };
                 }
             }

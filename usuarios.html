@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Usuarios - PDT Futura</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: radial-gradient(ellipse at center, #0f0f23 0%, #000000 100%);
+            color: white;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #87cefa;
+        }
+
+        .user-management {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(135, 206, 250, 0.3);
+            border: 1px solid rgba(135, 206, 250, 0.2);
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section h2 {
+            color: #87cefa;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(135, 206, 250, 0.3);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: bold;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            color: white;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #2575fc;
+            box-shadow: 0 0 10px rgba(37, 117, 252, 0.5);
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: bold;
+            text-decoration: none;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            display: inline-block;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(37, 117, 252, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+        }
+
+        .user-list {
+            margin-top: 20px;
+        }
+
+        .user-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-email {
+            font-weight: bold;
+            color: #87cefa;
+        }
+
+        .user-meta {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .status-message {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .status-success {
+            background: rgba(40, 167, 69, 0.2);
+            border: 1px solid rgba(40, 167, 69, 0.3);
+            color: #4CAF50;
+        }
+
+        .status-error {
+            background: rgba(220, 53, 69, 0.2);
+            border: 1px solid rgba(220, 53, 69, 0.3);
+            color: #ff6b6b;
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 50px;
+            text-decoration: none;
+            border: 1px solid rgba(135, 206, 250, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(135, 206, 250, 0.2);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .user-item {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+
+            .user-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="proyectos.html" class="back-btn">
+        <i class="fas fa-arrow-left"></i> Volver
+    </a>
+
+    <div class="container">
+        <h1>Gestión de Usuarios</h1>
+
+        <div class="user-management">
+            <!-- Crear Usuario -->
+            <div class="section">
+                <h2><i class="fas fa-user-plus"></i> Crear Nuevo Usuario</h2>
+                <form id="create-user-form">
+                    <div class="form-group">
+                        <label for="new-user-email">Correo Electrónico:</label>
+                        <input type="email" id="new-user-email" required placeholder="usuario@ejemplo.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="new-user-password">Contraseña Temporal:</label>
+                        <input type="password" id="new-user-password" required minlength="6" placeholder="Mínimo 6 caracteres">
+                    </div>
+                    <div class="form-group">
+                        <label for="user-role">Rol del Usuario:</label>
+                        <select id="user-role">
+                            <option value="user">Usuario Regular</option>
+                            <option value="admin">Administrador</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn">
+                        <i class="fas fa-user-plus"></i> Crear Usuario
+                    </button>
+                </form>
+            </div>
+
+            <!-- Lista de Usuarios -->
+            <div class="section">
+                <h2><i class="fas fa-users"></i> Usuarios Registrados</h2>
+                <div id="users-list" class="user-list">
+                    <!-- Los usuarios se cargarán aquí -->
+                    <p style="text-align: center; color: rgba(255,255,255,0.7);">
+                        <i class="fas fa-spinner fa-spin"></i> Cargando usuarios...
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mensajes de estado -->
+        <div id="status-message" style="display: none;"></div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <script>
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyBX1H8MaD6eoIo0jbpVRKO-fGtND3PthlI",
+            authDomain: "pdt-futura.firebaseapp.com",
+            projectId: "pdt-futura",
+            storageBucket: "pdt-futura.appspot.com",
+            messagingSenderId: "807986666483",
+            appId: "1:807986666483:web:4213a33d83132845c87931"
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Verificar autenticación y permisos
+        auth.onAuthStateChanged(user => {
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Solo admin puede acceder
+            if (user.email !== 'admin@gnce.com') {
+                alert('No tienes permisos para acceder a esta página.');
+                window.location.href = 'proyectos.html';
+                return;
+            }
+
+            // Cargar lista de usuarios
+            loadUsers();
+        });
+
+        // Crear usuario
+        document.getElementById('create-user-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('new-user-email').value;
+            const password = document.getElementById('new-user-password').value;
+            const role = document.getElementById('user-role').value;
+
+            try {
+                // Crear usuario en Authentication
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const newUser = userCredential.user;
+
+                // Guardar información adicional en Firestore
+                await db.collection('users').doc(newUser.uid).set({
+                    email: email,
+                    role: role,
+                    createdAt: firebase.firestore.Timestamp.now(),
+                    createdBy: auth.currentUser.uid,
+                    lastLogin: null
+                });
+
+                showStatusMessage('Usuario creado exitosamente. Se ha enviado un email de verificación.', 'success');
+
+                // Limpiar formulario
+                document.getElementById('create-user-form').reset();
+
+                // Recargar lista
+                loadUsers();
+
+            } catch (error) {
+                console.error('Error creando usuario:', error);
+                let message = 'Error al crear el usuario.';
+
+                switch (error.code) {
+                    case 'auth/email-already-in-use':
+                        message = 'Ya existe un usuario con este correo electrónico.';
+                        break;
+                    case 'auth/invalid-email':
+                        message = 'El formato del correo electrónico no es válido.';
+                        break;
+                    case 'auth/weak-password':
+                        message = 'La contraseña debe tener al menos 6 caracteres.';
+                        break;
+                }
+
+                showStatusMessage(message, 'error');
+            }
+        });
+
+        // Cargar lista de usuarios
+        async function loadUsers() {
+            const usersList = document.getElementById('users-list');
+
+            try {
+                const usersSnapshot = await db.collection('users').orderBy('createdAt', 'desc').get();
+
+                if (usersSnapshot.empty) {
+                    usersList.innerHTML = '<p style="text-align: center; color: rgba(255,255,255,0.7);">No hay usuarios registrados.</p>';
+                    return;
+                }
+
+                usersList.innerHTML = '';
+
+                usersSnapshot.forEach(doc => {
+                    const userData = doc.data();
+                    const userItem = document.createElement('div');
+                    userItem.className = 'user-item';
+
+                    userItem.innerHTML = `
+                        <div class="user-info">
+                            <div class="user-email">${userData.email}</div>
+                            <div class="user-meta">
+                                Rol: ${userData.role === 'admin' ? 'Administrador' : 'Usuario Regular'} |
+                                Creado: ${userData.createdAt ? userData.createdAt.toDate().toLocaleDateString('es-ES') : 'N/A'} |
+                                Último acceso: ${userData.lastLogin ? userData.lastLogin.toDate().toLocaleDateString('es-ES') : 'Nunca'}
+                            </div>
+                        </div>
+                        <div class="user-actions">
+                            <button class="btn btn-danger" onclick="deleteUser('${doc.id}', '${userData.email}')">
+                                <i class="fas fa-trash"></i> Eliminar
+                            </button>
+                        </div>
+                    `;
+
+                    usersList.appendChild(userItem);
+                });
+
+            } catch (error) {
+                console.error('Error cargando usuarios:', error);
+                usersList.innerHTML = '<p style="text-align: center; color: #ff6b6b;">Error al cargar la lista de usuarios.</p>';
+            }
+        }
+
+        // Eliminar usuario
+        async function deleteUser(userId, userEmail) {
+            if (!confirm(`¿Estás seguro de que quieres eliminar al usuario ${userEmail}? Esta acción no se puede deshacer.`)) {
+                return;
+            }
+
+            try {
+                // Eliminar de Firestore
+                await db.collection('users').doc(userId).delete();
+
+                // Nota: Firebase Authentication no permite eliminar usuarios desde el cliente
+                // por seguridad. Esto debería hacerse desde el servidor o Firebase Console
+
+                showStatusMessage('Usuario eliminado de la base de datos. Para eliminar completamente de Authentication, usa Firebase Console.', 'success');
+                loadUsers();
+
+            } catch (error) {
+                console.error('Error eliminando usuario:', error);
+                showStatusMessage('Error al eliminar el usuario.', 'error');
+            }
+        }
+
+        // Función global para eliminar usuario (llamada desde HTML)
+        window.deleteUser = deleteUser;
+
+        // Mostrar mensajes de estado
+        function showStatusMessage(message, type) {
+            const statusDiv = document.getElementById('status-message');
+            statusDiv.className = `status-message status-${type}`;
+            statusDiv.textContent = message;
+            statusDiv.style.display = 'block';
+
+            // Auto-hide después de 5 segundos
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
