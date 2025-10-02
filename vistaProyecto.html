@@ -6,8 +6,8 @@
     <title>Vista de Proyecto - PDT: G&N CE</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.3/jspdf.plugin.autotable.min.js"></script>
     <style>
         /* Estilos copiados de intro.html para consistencia visual */
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -262,11 +262,12 @@
             z-index: 10000; 
             pointer-events: none; 
             opacity: 1; 
-            white-space: nowrap;
+            white-space: normal;
+            word-wrap: break-word;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             border: 1px solid rgba(255,255,255,0.1);
             max-width: 300px;
-            word-wrap: break-word;
+            line-height: 1.4;
         }
         
         /* Modal para tareas del día */
@@ -1043,14 +1044,6 @@
             // Crear una copia profunda del proyecto
             const updatedData = JSON.parse(JSON.stringify(data));
 
-            // Función helper para verificar si una fecha es día laborable
-            function isWorkingDay(date, config) {
-                const dayOfWeek = date.getDay();
-                const isWeekend = (dayOfWeek === 0 && config.includeSundays) || (dayOfWeek === 6 && config.includeSaturdays);
-                const isHoliday = config.includeHolidays ? isHolidayDate(date, config.holidays) : false;
-                return !isWeekend && !isHoliday;
-            }
-
             // Función helper para encontrar el siguiente día laborable desde una fecha
             function findNextWorkingDay(startDate, config) {
                 const date = new Date(startDate);
@@ -1082,186 +1075,106 @@
             
             updatedData.lastUpdated = firebase.firestore.Timestamp.now();
 
-            // CALCULAR FECHAS DE TAREAS CON LÓGICA CORRECTA DE HORAS POR DÍA
-            // Parsear horas del turno desde configuración
-            const shiftStartTime = config.shiftStartTime ? parseInt(config.shiftStartTime.split(':')[0]) + parseInt(config.shiftStartTime.split(':')[1]) / 60 : 8; // Hora inicio turno en horas decimales
-            const shiftEndTime = config.shiftEndTime ? parseInt(config.shiftEndTime.split(':')[0]) + parseInt(config.shiftEndTime.split(':')[1]) / 60 : 24; // Hora fin turno en horas decimales
-            const shiftBreakHours = config.shiftBreakHours || 1; // Horas de descanso
-            const shiftBreakStart = 12; // Inicio del descanso a las 12:00 (configurable si es necesario)
-            const shiftBreakEnd = shiftBreakStart + shiftBreakHours; // Fin del descanso
+            // CALCULAR FECHAS DE TAREAS CON LÓGICA DE DÍAS LABORABLES
+            // Calcular horas efectivas del turno
+            const shiftStartTime = config.shiftStartTime ? parseInt(config.shiftStartTime.split(':')[0]) + parseInt(config.shiftStartTime.split(':')[1]) / 60 : 8;
+            const shiftEndTime = config.shiftEndTime ? parseInt(config.shiftEndTime.split(':')[0]) + parseInt(config.shiftEndTime.split(':')[1]) / 60 : 17;
+            const shiftBreakHours = config.shiftBreakHours || 1;
+            config.effectiveShiftHours = shiftEndTime - shiftStartTime - shiftBreakHours;
+            if (config.effectiveShiftHours <= 0) {
+                alert('La configuración del turno no es válida. Las horas efectivas son cero o negativas.');
+                throw new Error('Horas de turno inválidas');
+            }
 
             let currentDate = new Date(projectStartDate); // Comenzar desde la fecha de inicio validada
-            let hoursRemainingToday = shiftEndTime - shiftStartTime - shiftBreakHours; // Horas efectivas disponibles en el día actual (considerando descanso)
-
-            let currentTimeInDay = shiftStartTime; // Hora actual en el día (en horas decimales)
+            
             let taskCounter = 1;
 
-            let adjustedTaskEndTime; // Variable para ajustar hora de fin cuando termina en descanso
-
-            console.log(`Iniciando cálculo desde ${currentDate.toLocaleDateString('es-ES')} con ${hoursRemainingToday}h disponibles por día`);
-            console.log(`Turno: ${shiftStartTime.toFixed(2)}h - ${shiftEndTime.toFixed(2)}h, Descanso: ${shiftBreakHours}h (${shiftBreakStart}-${shiftBreakEnd}h)`);
+            console.log(`Iniciando cálculo desde ${currentDate.toLocaleDateString('es-ES')}`);
 
             updatedData.phases.forEach((phase, phaseIndex) => {
                 phase.tasks.forEach((task, taskIndex) => {
                     const taskHours = task.durationHours;
-                    let hoursRemainingForTask = taskHours; // Horas que aún necesita esta tarea
-
-                    console.log(`\n=== TAREA ${taskCounter}: ${task.name} (${taskHours}h) ===`);
-                    console.log(`Fecha actual: ${currentDate.toLocaleDateString('es-ES')}, Horas disponibles hoy: ${hoursRemainingToday}h`);
-
-                    // Fecha de inicio de la tarea (siempre es la fecha actual cuando comienza)
+                    
+                    // CORRECCIÓN: Solo buscar día laborable si NO venimos de una tarea que terminó antes del final del turno
+                    // Si currentDate ya es un día válido y venimos de una tarea que terminó temprano, mantener la fecha
+                    if (!isWorkingDay(currentDate, config)) {
+                        currentDate = findNextWorkingDay(currentDate, config);
+                    }
+                    
                     const taskStartDate = new Date(currentDate);
-                    const taskStartTime = currentTimeInDay; // Hora de inicio en horas decimales
 
-                    // SIMULAR PRIMERO LA ASIGNACIÓN COMPLETA PARA CALCULAR FECHAS DE FIN
-                    let tempDate = new Date(currentDate);
-                    let tempTimeInDay = currentTimeInDay;
-                    let tempHoursRemainingToday = hoursRemainingToday;
-                    let tempHoursRemainingForTask = taskHours;
+                    // ===== NUEVA LÓGICA PARA CALCULAR FECHAS CON DISTRIBUCIÓN CORRECTA DE HORAS =====
+                    // Calcular cómo se distribuyen las horas por día laborable
+                    let remainingHours = taskHours;
+                    let currentDay = new Date(taskStartDate);
+                    let taskEndDate = new Date(taskStartDate);
+                    let hoursWorkedOnLastDay = 0; // Rastrear horas trabajadas en el último día
 
-                    console.log(`  Simulando asignación para tarea de ${taskHours}h comenzando ${tempDate.toLocaleDateString('es-ES')} ${tempTimeInDay.toFixed(2)}h`);
+                    console.log(`  TAREA ${task.name}: ${taskHours}h empezando ${taskStartDate.toLocaleDateString('es-ES')}`);
 
-                    // Simular la asignación completa para calcular fecha y hora de fin
-                    while (tempHoursRemainingForTask > 0) {
-                        // Si no quedan horas en el día actual, pasar al siguiente día laborable
-                        if (tempHoursRemainingToday <= 0 || tempTimeInDay >= shiftEndTime) {
-                            tempDate.setDate(tempDate.getDate() + 1);
-                            while (!isWorkingDay(tempDate, config)) {
-                                tempDate.setDate(tempDate.getDate() + 1);
-                            }
-                            tempHoursRemainingToday = shiftEndTime - shiftStartTime - shiftBreakHours;
-                            tempTimeInDay = shiftStartTime;
+                    // Distribuir horas por días laborables
+                    while (remainingHours > 0) {
+                        // Si el día actual no es laborable, buscar el siguiente
+                        if (!isWorkingDay(currentDay, config)) {
+                            currentDay.setDate(currentDay.getDate() + 1);
+                            continue;
                         }
 
-                        // Aplicar descanso si es necesario (durante el horario de descanso)
-                        if (tempTimeInDay >= shiftBreakStart && tempTimeInDay < shiftBreakEnd) {
-                            tempTimeInDay = shiftBreakEnd;
-                            tempHoursRemainingToday = Math.max(0, shiftEndTime - shiftBreakEnd);
-                        }
+                        // Calcular cuántas horas se pueden trabajar en este día
+                        const availableHoursToday = config.effectiveShiftHours;
 
-                        // Calcular horas disponibles ahora (respetando límites del turno y descanso)
-                        let hoursAvailableNow = 0;
-
-                        if (tempTimeInDay >= shiftBreakStart && tempTimeInDay < shiftBreakEnd) {
-                            // Estamos en descanso, no hay horas disponibles
-                            hoursAvailableNow = 0;
-                        } else if (tempTimeInDay < shiftBreakStart) {
-                            // Antes del descanso: trabajar hasta el descanso
-                            hoursAvailableNow = Math.min(tempHoursRemainingToday, shiftBreakStart - tempTimeInDay);
+                        // Si es el primer día y empezamos después del inicio del turno,
+                        // calcular las horas disponibles desde el inicio de la tarea
+                        let hoursForThisDay;
+                        if (currentDay.toDateString() === taskStartDate.toDateString()) {
+                            // Es el primer día - calcular horas disponibles desde el inicio
+                            // Asumimos que la tarea empieza al inicio del turno disponible
+                            hoursForThisDay = Math.min(remainingHours, availableHoursToday);
                         } else {
-                            // Después del descanso: trabajar hasta el fin del turno
-                            hoursAvailableNow = Math.min(tempHoursRemainingToday, shiftEndTime - tempTimeInDay);
+                            // Días subsiguientes - turno completo
+                            hoursForThisDay = Math.min(remainingHours, availableHoursToday);
                         }
 
-                        const hoursToAssignToday = Math.min(tempHoursRemainingForTask, hoursAvailableNow);
-                        tempHoursRemainingForTask -= hoursToAssignToday;
-                        tempHoursRemainingToday -= hoursToAssignToday;
-                        tempTimeInDay += hoursToAssignToday;
+                        console.log(`    Día ${currentDay.toLocaleDateString('es-ES')}: ${hoursForThisDay}h (restan ${remainingHours - hoursForThisDay}h)`);
 
-                        // Si llega exactamente al inicio del descanso Y hay horas restantes, saltar al descanso
-                        if (tempTimeInDay === shiftBreakStart && tempHoursRemainingForTask > 0) {
-                            tempTimeInDay = shiftBreakEnd;
-                            tempHoursRemainingToday = Math.max(0, shiftEndTime - shiftBreakEnd);
-                        }
-                    }
+                        // Actualizar horas restantes
+                        remainingHours -= hoursForThisDay;
 
-                    // Ahora tenemos la fecha y hora de fin calculadas
-                    const taskEndDate = new Date(tempDate);
-                    const taskEndTime = tempTimeInDay;
+                        // Actualizar horas trabajadas en el último día
+                        hoursWorkedOnLastDay = hoursForThisDay;
 
-                    console.log(`  Tarea terminará: ${taskEndDate.toLocaleDateString('es-ES')} ${taskEndTime.toFixed(2)}h`);
-
-                    // AHORA HACER LA ASIGNACIÓN REAL (sin modificar las fechas ya calculadas)
-                    hoursRemainingForTask = taskHours;
-                    while (hoursRemainingForTask > 0) {
-                        console.log(`  Asignando ${hoursRemainingForTask}h restantes. Disponible hoy: ${hoursRemainingToday}h`);
-
-                        // Si no quedan horas en el día actual, pasar al siguiente día laborable
-                        if (hoursRemainingToday <= 0 || currentTimeInDay >= shiftEndTime) {
-                            console.log(`  No quedan horas hoy, pasando al siguiente día laborable`);
-                            currentDate.setDate(currentDate.getDate() + 1);
-                            while (!isWorkingDay(currentDate, config)) {
-                                currentDate.setDate(currentDate.getDate() + 1);
-                            }
-                            hoursRemainingToday = shiftEndTime - shiftStartTime - shiftBreakHours;
-                            currentTimeInDay = shiftStartTime;
-                            console.log(`  Nuevo día: ${currentDate.toLocaleDateString('es-ES')} con ${hoursRemainingToday}h disponibles`);
-                        }
-
-                        // Aplicar descanso si es necesario
-                        if (currentTimeInDay >= shiftBreakStart && currentTimeInDay < shiftBreakEnd) {
-                            currentTimeInDay = shiftBreakEnd;
-                            hoursRemainingToday = Math.max(0, shiftEndTime - shiftBreakEnd);
-                        }
-
-                        // Calcular horas disponibles ahora (respetando límites del turno y descanso)
-                        let hoursAvailableNow = 0;
-
-                        if (currentTimeInDay >= shiftBreakStart && currentTimeInDay < shiftBreakEnd) {
-                            // Estamos en descanso, no hay horas disponibles
-                            hoursAvailableNow = 0;
-                        } else if (currentTimeInDay < shiftBreakStart) {
-                            // Antes del descanso: trabajar hasta el descanso
-                            hoursAvailableNow = Math.min(hoursRemainingToday, shiftBreakStart - currentTimeInDay);
+                        // Si aún quedan horas, pasar al siguiente día
+                        if (remainingHours > 0) {
+                            currentDay.setDate(currentDay.getDate() + 1);
                         } else {
-                            // Después del descanso: trabajar hasta el fin del turno
-                            hoursAvailableNow = Math.min(hoursRemainingToday, shiftEndTime - currentTimeInDay);
+                            // Esta es la fecha de fin de la tarea
+                            taskEndDate = new Date(currentDay);
                         }
-
-                        const hoursToAssignToday = Math.min(hoursRemainingForTask, hoursAvailableNow);
-                        console.log(`  Asignando ${hoursToAssignToday}h de esta tarea al día ${currentDate.toLocaleDateString('es-ES')}`);
-
-                        hoursRemainingForTask -= hoursToAssignToday;
-                        hoursRemainingToday -= hoursToAssignToday;
-                        currentTimeInDay += hoursToAssignToday;
-
-                        // Si llega exactamente al inicio del descanso Y hay horas restantes, saltar al descanso
-                        if (currentTimeInDay === shiftBreakStart && hoursRemainingForTask > 0) {
-                            currentTimeInDay = shiftBreakEnd;
-                            hoursRemainingToday = Math.max(0, shiftEndTime - shiftBreakEnd);
-                        }
-
-                        console.log(`  Tarea ahora necesita ${hoursRemainingForTask}h más. Quedan ${hoursRemainingToday}h disponibles hoy. Hora actual: ${currentTimeInDay.toFixed(2)}h`);
                     }
 
-                    console.log(`  ✓ TAREA COMPLETADA: ${taskStartDate.toLocaleDateString('es-ES')} ${taskStartTime.toFixed(2)}h → ${taskEndDate.toLocaleDateString('es-ES')} ${taskEndTime.toFixed(2)}h`);
+                    console.log(`  ✓ TAREA ${task.name}: ${taskStartDate.toLocaleDateString('es-ES')} → ${taskEndDate.toLocaleDateString('es-ES')}`);
 
-                    // Convertir horas decimales a formato HH:MM
-                    function decimalHoursToTime(decimalHours) {
-                        const hours = Math.floor(decimalHours);
-                        const minutes = Math.round((decimalHours - hours) * 60);
-                        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-                    }
-
-                    // Actualizar las fechas y horas de la tarea
+                    // Actualizar las fechas de la tarea
                     updatedData.phases[phaseIndex].tasks[taskIndex].startDate = firebase.firestore.Timestamp.fromDate(taskStartDate);
                     updatedData.phases[phaseIndex].tasks[taskIndex].endDate = firebase.firestore.Timestamp.fromDate(taskEndDate);
-                    updatedData.phases[phaseIndex].tasks[taskIndex].startTime = decimalHoursToTime(taskStartTime);
-                    updatedData.phases[phaseIndex].tasks[taskIndex].endTime = decimalHoursToTime(taskEndTime);
-
-                    // La siguiente tarea puede comenzar inmediatamente si quedan horas disponibles,
-                    // o al día siguiente si no quedan horas
-                    if (hoursRemainingToday <= 0 || currentTimeInDay >= shiftEndTime) {
-                        // No quedan horas hoy, la siguiente tarea comenzará mañana
-                        currentDate.setDate(currentDate.getDate() + 1);
-                        while (!isWorkingDay(currentDate, config)) {
-                            currentDate.setDate(currentDate.getDate() + 1);
-                        }
-                        hoursRemainingToday = shiftEndTime - shiftStartTime - shiftBreakHours; // Resetear horas efectivas disponibles
-                        currentTimeInDay = shiftStartTime; // Resetear hora del día
-                        console.log(`  → Siguiente tarea comenzará el ${currentDate.toLocaleDateString('es-ES')} (día siguiente laborable)`);
+                    
+                    // CORRECCIÓN: Determinar cuándo puede comenzar la siguiente tarea
+                    // Si la tarea terminó antes del final del turno (trabajó menos horas que las disponibles),
+                    // la siguiente tarea puede comenzar después del descanso (14:00) del mismo día
+                    if (hoursWorkedOnLastDay < config.effectiveShiftHours) {
+                        // La tarea terminó antes del final del turno, mantener la misma fecha para la siguiente tarea
+                        // La siguiente tarea comenzará después del descanso (14:00) del mismo día
+                        currentDate = new Date(taskEndDate);
                     } else {
-                        // Preparar para la siguiente tarea aplicando descanso si es necesario
-                        if (currentTimeInDay >= shiftBreakStart && currentTimeInDay < shiftBreakEnd) {
-                            currentTimeInDay = shiftBreakEnd;
-                            hoursRemainingToday = Math.max(0, shiftEndTime - shiftBreakEnd);
-                        }
-                        console.log(`  → Siguiente tarea puede comenzar hoy mismo (${hoursRemainingToday}h restantes a las ${currentTimeInDay.toFixed(2)}h)`);
+                        // La tarea terminó al final del turno o tomó múltiples días completos, siguiente tarea al día siguiente
+                        currentDate = new Date(taskEndDate);
+                        currentDate.setDate(currentDate.getDate() + 1);
                     }
 
                     taskCounter++;
                 });
-            });
+            });  
 
             console.log('Fechas recalculadas:', updatedData);
             return updatedData;
@@ -1282,8 +1195,8 @@
 
             // Preparar configuración actual
             const config = {
-                includeSaturdays: document.getElementById('include-saturdays').checked,
-                includeSundays: document.getElementById('include-sundays').checked,
+                includeSaturdays: !document.getElementById('include-saturdays').checked,
+                includeSundays: !document.getElementById('include-sundays').checked,
                 includeHolidays: document.getElementById('include-holidays').checked,
                 holidays: getHolidaysFromUI(),
                 shiftStartTime: document.getElementById('shift-start-time').value,
@@ -1307,8 +1220,8 @@
                     ...data,
                     lastUpdated: firebase.firestore.Timestamp.now(),
                     // Asegurar valores por defecto para configuración
-                    includeSaturdays: data.includeSaturdays !== undefined ? data.includeSaturdays : true,
-                    includeSundays: data.includeSundays !== undefined ? data.includeSundays : true,
+                    includeSaturdays: data.includeSaturdays !== undefined ? data.includeSaturdays : false,
+                    includeSundays: data.includeSundays !== undefined ? data.includeSundays : false,
                     includeHolidays: data.includeHolidays !== undefined ? data.includeHolidays : true,
                     holidays: data.holidays || [],
                     shiftStartTime: data.shiftStartTime || '08:00',
@@ -1441,6 +1354,23 @@
 
         // Función para obtener tareas de una fecha específica
         function getTasksForDate(date, data) {
+            // Preparar configuración para verificar días laborables
+            const config = {
+                includeSaturdays: data.includeSaturdays !== undefined ? data.includeSaturdays : false,
+                includeSundays: data.includeSundays !== undefined ? data.includeSundays : false,
+                includeHolidays: data.includeHolidays !== undefined ? data.includeHolidays : true,
+                holidays: data.holidays || []
+            };
+
+            // CORRECCIÓN: Forzar configuración correcta - NO incluir fines de semana
+            config.includeSaturdays = false;
+            config.includeSundays = false;
+
+            // CORRECCIÓN: Solo devolver tareas si la fecha es un día laborable
+            if (!isWorkingDay(date, config)) {
+                return [];
+            }
+
             const tasks = [];
             let taskCounter = 1;
 
@@ -1449,15 +1379,26 @@
                     const taskStart = task.startDate && typeof task.startDate.toDate === 'function' ? task.startDate.toDate() : new Date(task.startDate);
                     const taskEnd = task.endDate && typeof task.endDate.toDate === 'function' ? task.endDate.toDate() : new Date(task.endDate);
 
-                    // Si la tarea comienza en esta fecha
-                    if (taskStart.toDateString() === date.toDateString()) {
+                    // CORRECCIÓN: Mostrar tareas que están ACTIVAS en esta fecha
+                    // Una tarea está activa si:
+                    // 1. Comienza en esta fecha (inicio de tarea)
+                    // 2. Está en progreso en esta fecha (fecha entre inicio y fin)
+                    // 3. Termina en esta fecha (fin de tarea completada)
+                    const isTaskStarting = taskStart.toDateString() === date.toDateString();
+                    const isTaskActive = taskStart <= date && taskEnd >= date;
+                    const isTaskEnding = task.completed && taskEnd.toDateString() === date.toDateString();
+
+                    if (isTaskStarting || isTaskActive || isTaskEnding) {
                         tasks.push({
                             ...task,
                             number: taskCounter,
                             isMilestone: task.isMilestone || task.esHito || false,
                             phaseIndex: phaseIndex,
                             taskIndex: taskIndex,
-                            phaseName: phase.name
+                            phaseName: phase.name,
+                            isStarting: isTaskStarting,
+                            isEnding: isTaskEnding,
+                            isActive: isTaskActive
                         });
                     }
                     taskCounter++;
@@ -1504,7 +1445,7 @@
                                 <span class="modal-task-status">${statusIcon} ${statusText}</span>
                             </div>
                             <div class="modal-task-info">
-                                <div class="modal-task-name">${task.name}</div>
+                                <div class="modal-task-name">${task.number}. ${task.name}</div>
                                 <div class="modal-task-details">
                                     <span class="modal-task-phase">Fase: ${task.phaseName}</span>
                                     <span class="modal-task-hours">${task.durationHours}h</span>
@@ -1623,8 +1564,14 @@
                             });
 
                             if (logoImg.complete && logoImg.naturalWidth > 0) {
-                                pdf.saveGraphicsState();
-                                pdf.setGState(pdf.GState({ opacity: 0.08 }));
+                                // En jsPDF 3.0.1, usar setGState con opacidad directamente
+                                try {
+                                    pdf.setGState(new pdf.GState({ opacity: 0.08 }));
+                                } catch (gstateError) {
+                                    // Si GState no funciona, usar un enfoque alternativo
+                                    console.log('GState no disponible, usando método alternativo para marca de agua');
+                                    // No aplicar opacidad, pero continuar con la marca de agua
+                                }
                                 
                                 // Calcular dimensiones manteniendo la relación de aspecto
                                 const originalWidth = logoImg.naturalWidth;
@@ -1642,7 +1589,13 @@
                                 const logoX = (currentPageWidth - logoWidth) / 2;
                                 const logoY = (currentPageHeight - logoHeight) / 2;
                                 pdf.addImage(logoImg, 'PNG', logoX, logoY, logoWidth, logoHeight);
-                                pdf.restoreGraphicsState();
+                                
+                                // Restaurar estado gráfico si GState funcionó
+                                try {
+                                    pdf.restoreGraphicsState();
+                                } catch (restoreError) {
+                                    console.log('restoreGraphicsState no disponible, continuando sin restaurar estado');
+                                }
                             }
                         } catch (error) {
                             console.log('No se pudo agregar marca de agua:', error);
@@ -2330,66 +2283,24 @@
             
             // Función común para recalcular fechas y guardar configuración
             const recalculateAndSave = async () => {
-                const newStartDate = createDateFromInput(startDateInput.value);
-                if (!newStartDate) {
-                    alert('Por favor, selecciona una fecha de inicio válida.');
-                    return;
-                }
-
-                console.log('Recalculando fechas desde:', formatDateForDisplay(newStartDate));
-                
-                // Actualizar datos del proyecto
-                data.startDate = newStartDate;
-                
-                // Recalcular fechas de todas las fases y tareas
-                let currentDate = new Date(newStartDate);
-                
-                data.phases.forEach(phase => {
-                    // Calcular fecha de inicio y fin de la fase
-                    phase.startDate = new Date(currentDate);
-                    
-                    let phaseDuration = 0;
-                    phase.tasks.forEach(task => {
-                        task.startDate = new Date(currentDate);
-                        
-                        // Sumar duración de la tarea
-                        const taskDays = Math.ceil((task.durationHours || 0) / 8);
-                        currentDate.setDate(currentDate.getDate() + taskDays);
-                        task.endDate = new Date(currentDate);
-                        
-                        phaseDuration += taskDays;
-                    });
-                    
-                    phase.endDate = new Date(currentDate);
-                    console.log(`Fase ${phase.name}: ${formatDateForDisplay(phase.startDate)} - ${formatDateForDisplay(phase.endDate)}`);
-                });
-                
-                // Actualizar fechas en la UI
-                document.getElementById('project-start-date').textContent = formatDateForDisplay(newStartDate);
-                document.getElementById('project-end-date').textContent = formatDateForDisplay(currentDate);
-                
-                // Actualizar el objeto data local con las nuevas fechas calculadas
-                data.startDate = newStartDate;
-                data.endDate = currentDate;
-                
-                // Guardar en Firebase
                 try {
-                    await db.collection('projects').doc(data.id).update({
-                        startDate: newStartDate,
-                        endDate: currentDate,
-                        phases: data.phases
-                    });
+                    console.log('Recalculando fechas con configuración de días laborables...');
                     
-                    console.log('Fechas actualizadas y guardadas en Firebase');
-                    alert('Fechas recalculadas y guardadas exitosamente');
+                    // Usar la función avanzada calculateDatesWithConfig que respeta días laborables
+                    const updatedData = await recalculateDates(data);
                     
-                    // Regenerar la vista del calendario con los datos actualizados
-                    renderCalendar(data);
-                    setupCalendarInteractions(data);
+                    // Guardar el proyecto actualizado usando la función helper
+                    await saveProject(updatedData);
+                    
+                    // Actualizar la vista del proyecto con los datos recalculados
+                    renderProject(updatedData);
+                    
+                    console.log('Fechas recalculadas y guardadas exitosamente');
+                    alert('Fechas recalculadas y guardadas exitosamente. Las fechas han sido ajustadas según la configuración de días laborables.');
                     
                 } catch (error) {
-                    console.error('Error al guardar fechas:', error);
-                    alert('Error al guardar las fechas. Por favor, inténtalo nuevamente.');
+                    console.error('Error al recalcular fechas:', error);
+                    alert('Error al recalcular las fechas. Por favor, inténtalo nuevamente.');
                 }
             };
             
@@ -2432,8 +2343,8 @@
             document.getElementById('start-date-input').valueAsDate = projectStartDate;
 
             // Cargar configuración del proyecto con valores por defecto
-            document.getElementById('include-saturdays').checked = data.includeSaturdays !== undefined ? data.includeSaturdays : true;
-            document.getElementById('include-sundays').checked = data.includeSundays !== undefined ? data.includeSundays : true;
+            document.getElementById('include-saturdays').checked = data.includeSaturdays !== undefined ? !data.includeSaturdays : false;
+            document.getElementById('include-sundays').checked = data.includeSundays !== undefined ? !data.includeSundays : false;
             document.getElementById('include-holidays').checked = data.includeHolidays !== undefined ? data.includeHolidays : true;
             
             // Cargar configuración del turno con valores por defecto
@@ -2460,6 +2371,10 @@
             // --- Renderizar Fases y Tareas ---
             const phasesContainer = document.getElementById('phases-container');
             phasesContainer.innerHTML = ''; // Limpiar contenido estático
+            
+            // Contador global de tareas para numeración
+            let globalTaskNumber = 1;
+            
             data.phases.forEach((phase, index) => {
                 const phaseEl = document.createElement('div');
                 phaseEl.className = 'phase';
@@ -2475,7 +2390,7 @@
                             '<div class="task-content">' +
                                 '<div class="task-left">' +
                                     '<input type="checkbox" class="task-checkbox" data-task-index="' + taskIndex + '" data-phase-index="' + index + '" ' + (isCompleted ? 'checked' : '') + '>' +
-                                    '<div class="task-name">' + task.name + (isMilestone ? ' 🎯' : '') + '</div>' +
+                                    '<div class="task-name">' + globalTaskNumber + '. ' + task.name + (isMilestone ? ' 🎯' : '') + '</div>' +
                                 '</div>' +
                                 '<div class="task-right">' +
                                     '<div class="task-details">' +
@@ -2494,6 +2409,9 @@
                                 '</div>' +
                             '</div>' +
                         '</div>';
+                    
+                    // Incrementar el contador global de tareas
+                    globalTaskNumber++;
                 });
 
                 phaseEl.innerHTML = `
@@ -2673,11 +2591,8 @@
             const currentDate = new Date(startDate);
             
             while (currentDate <= endDate) {
-                const dayOfWeek = currentDate.getDay();
-                const isWeekend = (dayOfWeek === 0 && config.includeSundays) || (dayOfWeek === 6 && config.includeSaturdays);
-                const isHoliday = config.includeHolidays ? isHolidayDate(currentDate, config.holidays) : false;
-                
-                if (!isWeekend && !isHoliday) {
+                // CORRECCIÓN: Usar la lógica correcta de isWorkingDay
+                if (isWorkingDay(currentDate, config)) {
                     workingDays++;
                 }
                 
@@ -2692,12 +2607,8 @@
             let addedDays = 0;
             
             while (addedDays < workingDays) {
-                // Verificar si el día actual es laborable
-                const dayOfWeek = resultDate.getDay();
-                const isWeekend = (dayOfWeek === 0 && config.includeSundays) || (dayOfWeek === 6 && config.includeSaturdays);
-                const isHoliday = config.includeHolidays ? isHolidayDate(resultDate, config.holidays) : false;
-                
-                if (!isWeekend && !isHoliday) {
+                // CORRECCIÓN: Usar la lógica correcta de isWorkingDay
+                if (isWorkingDay(resultDate, config)) {
                     addedDays++;
                 }
                 
@@ -2716,6 +2627,29 @@
                 const holidayDate = holiday.date && typeof holiday.date.toDate === 'function' ? holiday.date.toDate() : new Date(holiday.date);
                 return holidayDate.toISOString().split('T')[0] === dateStr;
             });
+        }
+
+        // Función helper para verificar si una fecha es día laborable
+        function isWorkingDay(date, config) {
+            const dayOfWeek = date.getDay();
+            // La lógica está corregida:
+            // Si includeSaturdays es true, significa que SÍ se incluyen los sábados (son laborables).
+            // Si es false, NO se incluyen (no son laborables).
+            const isSaturday = dayOfWeek === 6;
+            const isSunday = dayOfWeek === 0;
+            
+            // Un día es fin de semana (no laborable) si:
+            // - Es sábado Y la configuración dice que se excluyan los sábados (!config.includeSaturdays)
+            // - Es domingo Y la configuración dice que se excluyan los domingos (!config.includeSundays)
+            const isWeekend = (isSaturday && !config.includeSaturdays) || (isSunday && !config.includeSundays);
+            
+            // Verificar si es festivo
+            const isHoliday = config.includeHolidays ? isHolidayDate(date, config.holidays) : false;
+            
+            // Un día es laborable si NO es fin de semana Y NO es festivo
+            const result = !isWeekend && !isHoliday;
+            
+            return result;
         }
 
         // Función helper para convertir fechas de manera segura
@@ -2806,6 +2740,98 @@
             button.parentElement.remove();
         }
 
+        // Función centralizada para calcular métricas del proyecto
+        function calculateProjectMetrics(data) {
+            // Calcular métricas básicas del proyecto
+            let totalTasks = 0;
+            let totalHours = 0;
+            let completedTasks = 0;
+            let completedHours = 0;
+
+            data.phases.forEach(phase => {
+                totalTasks += phase.tasks.length;
+                phase.tasks.forEach(task => {
+                    const taskHours = task.durationHours || task.hours || 0;
+                    totalHours += taskHours;
+                    if (task.completed) {
+                        completedTasks++;
+                        completedHours += taskHours;
+                    }
+                });
+            });
+
+            // Calcular fechas del proyecto
+            const projectStartDate = data.startDate && typeof data.startDate.toDate === 'function' ?
+                data.startDate.toDate() : new Date(data.startDate);
+            const lastTask = data.phases[data.phases.length - 1]?.tasks.slice(-1)[0];
+            const projectEndDate = lastTask?.endDate && typeof lastTask.endDate.toDate === 'function' ?
+                lastTask.endDate.toDate() : new Date(lastTask?.endDate || projectStartDate);
+
+            // Calcular duración total en semanas
+            const totalDurationMs = projectEndDate - projectStartDate;
+            const totalWeeks = Math.max(1, Math.ceil(totalDurationMs / (7 * 24 * 60 * 60 * 1000)));
+
+            // Calcular semana actual
+            const now = new Date();
+            const elapsedMs = now - projectStartDate;
+            const currentWeek = Math.max(0, Math.min(totalWeeks - 1,
+                Math.floor(elapsedMs / (7 * 24 * 60 * 60 * 1000))));
+
+            // Determinar estado del proyecto
+            let projectStatus = 'Planificado';
+            if (completedHours >= totalHours) {
+                projectStatus = 'Completado';
+            } else if (completedHours > 0 || now >= projectStartDate) {
+                projectStatus = 'En Progreso';
+            }
+
+            // Calcular progreso planificado (distribución lineal de horas por semana)
+            const plannedProgress = [];
+            const hoursPerWeek = totalHours / totalWeeks;
+
+            for (let week = 0; week < totalWeeks; week++) {
+                const cumulativeHours = Math.round((week + 1) * hoursPerWeek);
+                plannedProgress.push(Math.min(cumulativeHours, totalHours));
+            }
+
+            // Calcular métricas de rendimiento (SPI y SV)
+            let scheduleVariance = 0;
+            let schedulePerformanceIndex = 1.0;
+
+            if (projectStatus !== 'Planificado' && totalHours > 0) {
+                // SPI = Progreso Real / Progreso Planificado
+                const plannedHoursAtCurrentWeek = plannedProgress[currentWeek] || 0;
+                schedulePerformanceIndex = completedHours / plannedHoursAtCurrentWeek;
+
+                // SV = Progreso Real - Progreso Planificado (en porcentaje)
+                scheduleVariance = ((completedHours - plannedHoursAtCurrentWeek) / totalHours) * 100;
+
+                // Manejar casos especiales
+                if (!isFinite(schedulePerformanceIndex)) {
+                    schedulePerformanceIndex = completedHours > 0 ? 999 : 0;
+                }
+                if (!isFinite(scheduleVariance)) {
+                    scheduleVariance = 0;
+                }
+            }
+
+            return {
+                totalTasks,
+                totalHours,
+                completedTasks,
+                completedHours,
+                progressPercentage: totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0,
+                scheduleVariance,
+                schedulePerformanceIndex,
+                projectStatus,
+                totalWeeks,
+                currentWeek,
+                plannedProgress,
+                projectStartDate,
+                projectEndDate
+            };
+        }
+
         function updateProgressStats(data) {
             let totalTasks = 0;
             let totalHours = 0;
@@ -2826,7 +2852,8 @@
             document.getElementById('completed-tasks').textContent = completedTasks;
             document.getElementById('completed-hours').textContent = Math.round(completedHours);
             
-            const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+            // CORRECCIÓN: Usar progreso basado en horas para consistencia con la gráfica S-curve
+            const progressPercentage = totalHours > 0 ? (completedHours / totalHours) * 100 : 0;
             document.getElementById('overall-progress').style.width = progressPercentage + '%';
             document.getElementById('progress-text').textContent = Math.round(progressPercentage) + '%';
             
@@ -2857,11 +2884,11 @@
             const lastTask = data.phases[data.phases.length - 1].tasks.slice(-1)[0];
             const projectEnd = lastTask.endDate && typeof lastTask.endDate.toDate === 'function' ? lastTask.endDate.toDate() : new Date(lastTask.endDate);
 
-            // Calcular número de meses a mostrar (desde el mes de inicio hasta el mes de fin)
+            // CORRECCIÓN: Mostrar TODOS los meses del proyecto sin limitación
             const startMonth = new Date(projectStart.getFullYear(), projectStart.getMonth(), 1);
             const endMonth = new Date(projectEnd.getFullYear(), projectEnd.getMonth(), 1);
             const monthsDiff = (endMonth.getFullYear() - startMonth.getFullYear()) * 12 + (endMonth.getMonth() - startMonth.getMonth()) + 1;
-            const monthsToShow = Math.max(1, Math.min(monthsDiff, 7)); // Máximo 7 meses, mínimo 1
+            const monthsToShow = Math.max(1, monthsDiff); // Mostrar todos los meses del proyecto
 
             calendarContainer.innerHTML = '';
 
@@ -2889,6 +2916,10 @@
                     <span>Tarea Completada ✅</span>
                 </div>
                 <div class="legend-calendar-item">
+                    <div class="legend-calendar-color" style="background: linear-gradient(135deg, #fff3cd, #ffeaa7); border: 2px solid #ffc107;"></div>
+                    <span>Tarea en Progreso 🔄</span>
+                </div>
+                <div class="legend-calendar-item">
                     <div class="legend-calendar-color" style="background: linear-gradient(135deg, #f8d7da, #f5c6cb); border: 2px solid #dc3545;"></div>
                     <span>Festivo</span>
                 </div>
@@ -2912,6 +2943,18 @@
             const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
             const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
             const startDayOfWeek = firstDay.getDay(); // 0 = Domingo, 1 = Lunes, etc.
+            
+            // Preparar configuración para verificar días laborables
+            const config = {
+                includeSaturdays: data.includeSaturdays !== undefined ? data.includeSaturdays : false,
+                includeSundays: data.includeSundays !== undefined ? data.includeSundays : false,
+                includeHolidays: data.includeHolidays !== undefined ? data.includeHolidays : true,
+                holidays: data.holidays || []
+            };
+            
+            // CORRECCIÓN: Forzar configuración correcta - NO incluir fines de semana
+            config.includeSaturdays = false;
+            config.includeSundays = false;
             
             let calendarHtml = `
                 <div class="month-header">${monthName}</div>
@@ -2948,15 +2991,27 @@
                     dayContent += `<div class="holiday-name">${holidayInfo.name}</div>`;
                 }
                 
+                // CORRECCIÓN: getTasksForDate ya filtra por días laborables, así que solo verificamos si hay tareas
                 if (dayTasks.length > 0) {
                     dayClass += ' has-task';
                     if (dayTasks.some(t => t.isMilestone)) dayClass += ' has-milestone';
                     if (dayTasks.some(t => t.completed)) dayClass += ' has-completed-task';
+                    if (dayTasks.some(t => t.isActive && !t.completed)) dayClass += ' has-active-task';
                     
-                    // Mostrar indicadores de tareas con tooltips
+                    // CORRECCIÓN: Mostrar indicadores de tareas con información más detallada
                     dayTasks.forEach(task => {
                         const taskType = task.isMilestone ? 'milestone' : 'regular';
-                        const taskTooltip = `${task.name} (${task.durationHours}h)`;
+                        let taskTooltip = `Tarea ${task.number}: ${task.name} (${task.durationHours}h)`;
+                        
+                        // Agregar información del estado de la tarea
+                        if (task.isStarting) {
+                            taskTooltip += ' - INICIO';
+                        } else if (task.isEnding && task.completed) {
+                            taskTooltip += ' - FINALIZADA';
+                        } else if (task.isActive && !task.completed) {
+                            taskTooltip += ' - EN PROGRESO';
+                        }
+                        
                         if (task.isMilestone) {
                             dayContent += `<div class="milestone-indicator" data-task-tooltip="${taskTooltip}" data-task-id="${task.number}" data-phase-index="${task.phaseIndex}" data-task-index="${task.taskIndex}">${task.number}</div>`;
                         } else {
@@ -3034,24 +3089,15 @@
             for (let week = 0; week < totalWeeks; week++) {
                 projectWeeks.push(week + 1);
 
-                // Progreso actual basado en tareas completadas hasta esta semana
-                // CORRECCIÓN: El progreso real debe ser acumulado - todas las tareas completadas
-                // hasta la fecha actual deben contribuir al progreso en todas las semanas siguientes
-                const weekDate = new Date(metrics.projectStartDate.getTime() + week * 7 * 24 * 60 * 60 * 1000);
+                // Progreso actual acumulado: todas las horas completadas hasta esta semana
+                // Usar la misma lógica que las estadísticas principales
                 let actualHoursAtWeek = 0;
                 
-                data.phases.forEach(phase => {
-                    phase.tasks.forEach(task => {
-                        if (task.completed) {
-                            // Una tarea completada contribuye a todo el progreso desde su fecha de finalización
-                            // hasta el final del proyecto
-                            const taskEndDate = task.endDate && typeof task.endDate.toDate === 'function' ? task.endDate.toDate() : new Date(task.endDate);
-                            if (taskEndDate <= weekDate) {
-                                actualHoursAtWeek += task.durationHours;
-                            }
-                        }
-                    });
-                });
+                // Si estamos en la semana actual o anterior, incluir todas las horas completadas
+                if (week <= clampedCurrentWeek) {
+                    actualHoursAtWeek = completedHours;
+                }
+                
                 actualProgress.push(Math.round(actualHoursAtWeek));
             }
 
@@ -3107,20 +3153,16 @@
 
                 for (let week = 0; week < totalWeeks; week++) {
                     projectWeeks.push(week + 1);
+                    
+                    // Progreso actual acumulado: todas las horas completadas hasta esta semana
+                    // Usar la misma lógica que las estadísticas principales
                     let actualHoursAtWeek = 0;
-                    const weekDate = new Date(metrics.projectStartDate.getTime() + week * 7 * 24 * 60 * 60 * 1000);
-                    data.phases.forEach(phase => {
-                        phase.tasks.forEach(task => {
-                            if (task.completed) {
-                                // CORRECCIÓN: Una tarea completada contribuye a todo el progreso 
-                                // desde su fecha de finalización hasta el final del proyecto
-                                const taskEndDate = task.endDate && typeof task.endDate.toDate === 'function' ? task.endDate.toDate() : new Date(task.endDate);
-                                if (taskEndDate <= weekDate) {
-                                    actualHoursAtWeek += task.durationHours;
-                                }
-                            }
-                        });
-                    });
+                    
+                    // Si estamos en la semana actual o anterior, incluir todas las horas completadas
+                    if (week <= clampedCurrentWeek) {
+                        actualHoursAtWeek = completedHours;
+                    }
+                    
                     actualProgress.push(Math.round(actualHoursAtWeek));
                 }
 
@@ -3154,8 +3196,7 @@
                 window.sCurveChart.data.labels = projectWeeks;
                 window.sCurveChart.data.datasets[0].data = plannedProgress;
                 window.sCurveChart.data.datasets[1].data = actualProgress;
-                window.sCurveChart.data.datasets[2].data = milestonePoints.map(p => ({ x: p.x, y: p.y }));
-                window.sCurveChart.data.datasets[3].data = currentPoint.map(p => ({ x: p.x, y: p.y }));
+                window.sCurveChart.data.datasets[2].data = currentPoint.map(p => ({ x: p.x, y: p.y }));
 
                 // Actualizar métricas en la UI
                 if (projectStatus === 'Planificado') {
@@ -3249,21 +3290,6 @@
                             pointBorderWidth: 2
                         },
                         {
-                            label: 'Hitos del Proyecto',
-                            data: milestonePoints.map(p => ({ x: p.x, y: p.y })),
-                            borderColor: 'rgba(107, 114, 128, 0.6)',
-                            backgroundColor: '#2563eb',
-                            borderWidth: 2,
-                            borderDash: [6, 4], // Mejor patrón de línea punteada
-                            fill: false,
-                            pointRadius: 6, // Puntos más pequeños y consistentes
-                            pointHoverRadius: 8, // Hover más pequeño
-                            pointBackgroundColor: '#2563eb',
-                            pointBorderColor: '#ffffff',
-                            pointBorderWidth: 2, // Borde más delgado
-                            showLine: false
-                        },
-                        {
                             label: 'Punto Actual',
                             data: currentPoint.map(p => ({ x: p.x, y: p.y })),
                             borderColor: '#dc2626', // Rojo más profesional
@@ -3355,12 +3381,7 @@
                                     } else if (context.datasetIndex === 1) { // Progreso Real
                                         const actualPercent = Math.round((context.parsed.y / totalHours) * 100);
                                         label += ' (' + actualPercent + '% completado)';
-                                    } else if (context.datasetIndex === 2) { // Hitos
-                                        const milestoneIndex = context.dataIndex;
-                                        if (milestonePoints[milestoneIndex]) {
-                                            label += ' - ' + milestonePoints[milestoneIndex].label + ' del proyecto';
-                                        }
-                                    } else if (context.datasetIndex === 3) { // Punto actual
+                                    } else if (context.datasetIndex === 2) { // Punto actual
                                         const currentPercent = Math.round((completedHours / totalHours) * 100);
                                         label += ' - Estado actual del proyecto (' + currentPercent + '% completado)';
                                     }
@@ -3369,7 +3390,7 @@
                                 },
                                 afterLabel: function(context) {
                                     // Información adicional después de la etiqueta principal
-                                    if (context.datasetIndex === 3) { // Punto actual
+                                    if (context.datasetIndex === 2) { // Punto actual
                                         const variance = metrics.scheduleVariance;
                                         const spi = metrics.schedulePerformanceIndex;
                                         const status = metrics.projectStatus;

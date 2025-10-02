@@ -24,6 +24,21 @@
             color: white;
         }
 
+        .logo-container {
+            margin-bottom: 30px;
+            z-index: 10;
+        }
+
+        .login-logo {
+            width: 200px;
+            height: auto;
+            filter: 
+                drop-shadow(0 2px 4px rgba(0,0,0,0.5))
+                brightness(1.1)
+                contrast(1.2);
+            transition: all 0.3s ease;
+        }
+
         .background-animation {
             position: fixed;
             top: 0;
@@ -108,6 +123,11 @@
 <body>
     <div class="background-animation">
         <!-- Background elements can be copied from index.html if desired -->
+    </div>
+
+    <!-- Logo Section -->
+    <div class="logo-container">
+        <img src="logo_2025web.png" alt="Logo G&N CE" class="login-logo">
     </div>
 
         <div class="login-container">
