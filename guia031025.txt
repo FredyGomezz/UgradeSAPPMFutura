@@ -1,0 +1,620 @@
+# 📋 GUÍA TÉCNICA Y DOCUMENTACIÓN - SISTEMA PDT FUTURA
+**Versión:** 3.1 | **Fecha:** 18 de octubre de 2025
+**Desarrollador:** Gómez Fredy SAP | gomez.fredy.sap@gmail.com | +57 3203284420
+
+---
+
+## 🎯 1. CONCEPTO GENERAL DE LA APLICACIÓN WEB
+
+### ¿Qué es PDT Futura?
+PDT Futura es un **Sistema Integral de Gestión de Proyectos** especializado en proyectos de telecomunicaciones e infraestructura crítica. La plataforma permite gestionar proyectos complejos con múltiples fases, usuarios y métricas de rendimiento avanzadas, enfocándose especialmente en proyectos de redes de fibra óptica para parques eólicos.
+
+### Propósito Principal
+- **Gestión Eficiente:** Controlar cronogramas, recursos y progreso de proyectos técnicos complejos
+- **Colaboración:** Facilitar el trabajo en equipo con roles definidos y permisos granulares
+- **Seguimiento en Tiempo Real:** Monitorear métricas de rendimiento (SPI, SV) y generar reportes automáticos
+- **Automatización:** Notificaciones por email y cálculos automáticos de cronogramas
+
+### Alcance del Sistema
+- ✅ Gestión completa del ciclo de vida de proyectos
+- ✅ Sistema de usuarios con roles y permisos
+- ✅ Métricas de rendimiento basadas en EVM (Earned Value Management)
+- ✅ Notificaciones automáticas por email
+- ✅ Interfaz web responsive y moderna
+
+---
+
+## 📖 2. GENERALIDADES
+
+### Arquitectura del Sistema
+- **Frontend:** Aplicación web SPA (Single Page Application) con HTML5, CSS3 y JavaScript ES6+
+- **Backend:** Servidor Node.js con Express.js para APIs REST
+- **Base de Datos:** Firebase Firestore (NoSQL en la nube)
+- **Autenticación:** Firebase Authentication con email/password
+- **Almacenamiento:** Firebase Storage para archivos y Firebase Hosting para despliegue
+- **Notificaciones:** Sistema de emails integrado con Gmail API
+
+### Características Técnicas
+- **Tiempo Real:** Sincronización automática de datos entre usuarios
+- **Offline-First:** Funcionalidad básica disponible sin conexión
+- **Escalabilidad:** Arquitectura preparada para múltiples proyectos simultáneos
+- **Seguridad:** Autenticación robusta y control de acceso basado en roles
+- **Rendimiento:** Optimización con lazy loading y cache inteligente
+
+### Casos de Uso Principales
+1. **Proyectos de Telecomunicaciones:** Redes de fibra óptica para parques eólicos
+2. **Infraestructura Crítica:** Sistemas SCADA y monitoreo industrial
+3. **Proyectos de Construcción:** Coordinación de múltiples equipos y fases
+4. **Gestión de Recursos:** Asignación y seguimiento de personal calificado
+
+---
+
+## 🛠️ 3. PLATAFORMAS Y TECNOLOGÍAS APLICADAS
+
+### Tecnologías Frontend
+```
+HTML5 + CSS3 (Flexbox/Grid)
+├── JavaScript ES6+ (Vanilla JS - Sin frameworks pesados)
+├── Firebase SDK (9.0+)
+└── Chart.js (Gráficos y diagramas)
+```
+
+### Tecnologías Backend
+```
+Node.js + Express.js
+├── Firebase Admin SDK
+├── Nodemailer (Envío de emails)
+├── CORS (Cross-Origin Resource Sharing)
+└── Helmet (Seguridad HTTP)
+```
+
+### Servicios en la Nube
+```
+Firebase Ecosystem
+├── Firestore (Base de datos NoSQL)
+├── Authentication (Sistema de usuarios)
+├── Storage (Archivos y assets)
+├── Hosting (Despliegue web)
+└── Functions (Lógica serverless - futuro)
+```
+
+### Infraestructura y DevOps
+```
+Desarrollo Local
+├── Node.js 18+
+├── NPM/Yarn
+├── Git (Control de versiones)
+└── VS Code (IDE recomendado)
+
+Despliegue
+├── Firebase Hosting
+├── Variables de entorno (.env)
+└── CI/CD con GitHub Actions (futuro)
+```
+
+### Librerías y Dependencias Clave
+- **Cliente HTTP:** Fetch API nativo (sin Axios para reducir bundle)
+- **Fechas:** date-fns para manipulación avanzada
+- **Utilidades:** Lodash para operaciones funcionales
+- **UI/UX:** CSS Grid y Flexbox para layouts responsive
+
+---
+
+## 👤 4. PROCESO DE USUARIO REGULAR
+
+### Diagrama de Flujo - Usuario Regular
+
+```
+1. REGISTRO
+   ↓
+2. VERIFICACIÓN DE EMAIL
+   ↓
+3. LOGIN
+   ↓
+4. DASHBOARD PRINCIPAL
+   ↓
+5. UNIÓN A PROYECTOS
+   ↓
+6. INTERACCIÓN CON PROYECTOS
+   ↓
+7. SEGUIMIENTO Y REPORTES
+```
+
+### Paso a Paso Detallado
+
+#### **Paso 1: Registro de Usuario**
+1. Acceder a `index.html` (página de login)
+2. Hacer clic en "Crear cuenta nueva"
+3. Completar formulario:
+   - Nombre completo
+   - Email corporativo
+   - Contraseña (mínimo 8 caracteres)
+   - Confirmar contraseña
+4. Aceptar términos y condiciones
+5. Hacer clic en "Registrarse"
+
+#### **Paso 2: Verificación de Email**
+- Recibir email automático de verificación
+- Hacer clic en enlace de verificación
+- Regresar a la aplicación y hacer login
+
+#### **Paso 3: Primer Login**
+- Ingresar email y contraseña
+- Sistema valida credenciales con Firebase Auth
+- Redirección automática al dashboard
+
+#### **Paso 4: Dashboard Principal**
+- Vista general de proyectos asignados
+- Notificaciones pendientes
+- Métricas personales de rendimiento
+- Acceso rápido a proyectos activos
+
+#### **Paso 5: Unión a Proyectos**
+- Dos métodos principales:
+  - **Invitación directa:** Email con enlace de invitación
+  - **Solicitud manual:** Administrador agrega usuario al proyecto
+- Confirmación de aceptación de invitación
+
+#### **Paso 6: Interacción con Proyectos**
+- **Vista de proyecto:** `vistaProyecto.html`
+- Navegación por fases y tareas
+- Marcar tareas como completadas
+- Visualizar progreso en tiempo real
+- Acceder a reportes y métricas
+
+#### **Paso 7: Seguimiento y Reportes**
+- Recibir notificaciones automáticas
+- Visualizar métricas y reportes en tiempo real
+- Ver curva S y métricas SPI/SV
+- Historial de actividades realizadas
+
+---
+
+## 👥 5. ROLES DE USUARIOS Y GESTIÓN
+
+### Tipos de Roles
+
+#### **1. Administrador del Sistema**
+**Permisos:**
+- Crear y gestionar todos los proyectos
+- Gestionar usuarios del sistema
+- Configurar parámetros globales
+- Acceder a reportes de todos los proyectos
+- Modificar configuraciones críticas
+
+**Responsabilidades:**
+- Configuración inicial del sistema
+- Gestión de usuarios y permisos
+- Mantenimiento y soporte técnico
+- Supervisión general del rendimiento
+
+#### **2. Líder de Proyecto (Project Manager)**
+**Permisos:**
+- Crear proyectos en su área
+- Gestionar usuarios de sus proyectos
+- Modificar cronogramas y tareas
+- Generar reportes completos
+- Configurar notificaciones del proyecto
+
+**Responsabilidades:**
+- Planificación y ejecución de proyectos
+- Coordinación de equipos
+- Seguimiento de métricas de rendimiento
+- Comunicación con stakeholders
+
+#### **3. Usuario Regular (Team Member)**
+**Permisos:**
+- Ver proyectos asignados
+- Marcar tareas como completadas
+- Visualizar métricas y reportes
+- Recibir notificaciones
+- Generar reportes personales
+
+**Responsabilidades:**
+- Ejecutar tareas asignadas
+- Reportar progreso real
+- Mantener comunicación con el equipo
+- Cumplir con cronogramas establecidos
+
+### Guía de Registro de Usuarios
+
+#### **Registro por Invitación (Recomendado)**
+1. **Administrador/Líder** envía invitación desde la gestión de usuarios
+2. **Usuario** recibe email con enlace único
+3. **Usuario** completa perfil básico (si es necesario)
+4. **Sistema** asigna automáticamente al proyecto
+
+#### **Registro Independiente**
+1. **Usuario** se registra normalmente en el sistema
+2. **Usuario** solicita unión a proyecto específico
+3. **Administrador** aprueba y asigna rol apropiado
+
+### Gestión de Usuarios en Proyectos
+
+#### **Agregar Usuario a Proyecto**
+```
+Método 1: Desde Gestión de Usuarios
+1. Ir a "Usuarios" → "Gestionar Usuarios"
+2. Buscar usuario por email
+3. Seleccionar proyecto destino
+4. Asignar rol (Regular/Líder)
+5. Confirmar asignación
+
+Método 2: Invitación por Email
+1. En vista de proyecto → "Gestionar Equipo"
+2. Ingresar email del nuevo usuario
+3. Seleccionar rol
+4. Sistema envía invitación automática
+```
+
+#### **Cambiar Rol de Usuario**
+1. Acceder a configuración del proyecto
+2. Seleccionar usuario en lista de equipo
+3. Modificar rol en dropdown
+4. Confirmar cambio (requiere permisos de líder)
+
+#### **Remover Usuario de Proyecto**
+1. En gestión de equipo del proyecto
+2. Seleccionar usuario a remover
+3. Confirmar eliminación
+4. Usuario pierde acceso pero mantiene cuenta
+
+---
+
+## ⚙️ 6. CONFIGURACIONES CON PROVEEDORES DE SERVICIOS
+
+### Firebase Configuration
+**Archivo:** `.env` (NO subir a repositorio)
+
+```env
+# Firebase Configuration
+FIREBASE_API_KEY=your_api_key_here
+FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+FIREBASE_PROJECT_ID=your_project_id
+FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+FIREBASE_MESSAGING_SENDER_ID=123456789
+FIREBASE_APP_ID=1:123456789:web:abcdef123456
+
+# Firebase Admin SDK (Server Side)
+FIREBASE_ADMIN_TYPE=service_account
+FIREBASE_ADMIN_PROJECT_ID=your_project_id
+FIREBASE_ADMIN_PRIVATE_KEY_ID=abcdef123456
+FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYOUR_PRIVATE_KEY\n-----END PRIVATE KEY-----\n"
+FIREBASE_ADMIN_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your_project.iam.gserviceaccount.com
+FIREBASE_ADMIN_CLIENT_ID=123456789
+FIREBASE_ADMIN_AUTH_URI=https://accounts.google.com/o/oauth2/auth
+FIREBASE_ADMIN_TOKEN_URI=https://oauth2.googleapis.com/token
+FIREBASE_ADMIN_AUTH_PROVIDER_CERT_URL=https://www.googleapis.com/oauth2/v1/certs
+FIREBASE_ADMIN_CLIENT_CERT_URL=https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-xxxxx%40your_project.iam.gserviceaccount.com
+```
+
+### Gmail API Configuration
+**Archivo:** `.env`
+
+```env
+# Gmail Configuration for Notifications
+GMAIL_USER=your-email@gmail.com
+GMAIL_APP_PASSWORD=your_app_password_here
+
+# Gmail App Password Generation:
+# 1. Ir a Google Account Settings
+# 2. Security → 2-Step Verification → App passwords
+# 3. Generar password para "Mail"
+# 4. Usar ese password (no el normal de Gmail)
+```
+
+### Variables de Entorno Adicionales
+```env
+# Server Configuration
+PORT=3001
+NODE_ENV=production
+
+# Security
+JWT_SECRET=your_jwt_secret_here
+SESSION_TIMEOUT=3600000
+
+# External APIs (Future)
+OPENAI_API_KEY=your_openai_key
+SLACK_WEBHOOK_URL=your_slack_webhook
+```
+
+### Configuración de Firebase Security Rules
+**Archivo:** `firestore.rules`
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can read and write their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Project access based on membership
+    match /projects/{projectId} {
+      allow read: if request.auth != null &&
+        (request.auth.uid in get(/databases/$(database)/documents/projects/$(projectId)).data.members ||
+         get(/databases/$(database)/documents/projects/$(projectId)).data.owner == request.auth.uid);
+
+      allow write: if request.auth != null &&
+        (get(/databases/$(database)/documents/projects/$(projectId)).data.owner == request.auth.uid ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+    }
+  }
+}
+```
+
+---
+
+## 📋 7. CREACIÓN Y GESTIÓN DE PROYECTOS
+
+### Métodos de Creación de Proyectos
+
+#### **Método 1: Creación Manual (Interfaz Web)**
+1. Acceder como Administrador/Líder
+2. Ir a "Proyectos" → "Crear Nuevo Proyecto"
+3. Completar formulario básico:
+   - Nombre del proyecto
+   - Descripción
+   - Fecha de inicio
+   - Fecha estimada de fin
+   - Presupuesto (opcional)
+4. Configurar fases iniciales
+5. Asignar usuarios al proyecto
+
+#### **Método 2: Importación desde CSV/Excel (GenerarProy.html)**
+- **Uso:** Para creación masiva de proyectos
+- **Formato requerido:** Archivo CSV con columnas específicas
+- **Campos obligatorios:**
+  - Nombre del proyecto
+  - Fecha inicio
+  - Lista de fases
+  - Duración estimada por fase
+- **Proceso:**
+  1. Preparar archivo CSV
+  2. Acceder a `GenerarProy.html`
+  3. Subir archivo
+  4. Revisar preview
+  5. Confirmar creación
+
+### Gestión Avanzada de Proyectos
+
+#### **Configuración de Cronogramas**
+```
+Parámetros de Trabajo:
+- Horas por día: 8 horas (configurable)
+- Días laborables: Lunes a Viernes
+- Exclusión de festivos: Configurable por proyecto
+- Horarios: 08:00 - 18:00 (configurable)
+- Descanso: 1 hora (configurable)
+
+Cálculo Automático:
+- Sistema calcula fechas basándose en horas de tareas
+- Respeta festivos y fines de semana
+- Ajusta automáticamente por cambios en configuración
+```
+
+#### **Fases y Tareas**
+- **Estructura Jerárquica:** Proyecto → Fases → Tareas
+- **Estados de Tareas:** Pendiente → En Progreso → Completada
+- **Asignación:** Tareas pueden asignarse a usuarios específicos
+- **Dependencias:** Sistema soporta tareas dependientes (futuro)
+
+#### **Métricas y Reportes**
+- **SPI (Schedule Performance Index):** Eficiencia del cronograma
+- **SV (Schedule Variance):** Variación respecto al plan
+- **Curva S:** Gráfico de progreso acumulado
+- **Reportes Web:** Visualización en tiempo real con diagramas
+
+### Notas de Implementación Clave
+
+#### **Cálculos de Cronograma**
+```javascript
+// Lógica de cálculo de fechas
+function calculateTaskDates(task, projectConfig) {
+    const { hours, startDate } = task;
+    const { workHoursPerDay, workDays, holidays } = projectConfig;
+
+    // Calcular días necesarios
+    const daysNeeded = Math.ceil(hours / workHoursPerDay);
+
+    // Encontrar fecha fin respetando días laborables
+    let currentDate = new Date(startDate);
+    let workedDays = 0;
+
+    while (workedDays < daysNeeded) {
+        if (isWorkDay(currentDate, workDays, holidays)) {
+            workedDays++;
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return {
+        startDate: startDate,
+        endDate: new Date(currentDate.setDate(currentDate.getDate() - 1))
+    };
+}
+```
+
+#### **Validaciones Críticas**
+- ✅ Verificar solapamiento de tareas en misma fase
+- ✅ Validar dependencias entre tareas
+- ✅ Controlar capacidad de usuarios (sobre-asignación)
+- ✅ Alertas por cambios en cronograma base
+
+#### **Optimizaciones Futuras**
+- 🔄 Sistema de dependencias entre tareas
+- 🔄 Asignación automática basada en habilidades
+- 🔄 Integración con calendarios externos (Google Calendar)
+- 🔄 API para integración con otros sistemas PM
+
+---
+
+## 📊 8. SEGUIMIENTO DE PROYECTOS
+
+### Dashboard de Proyecto (`vistaProyecto.html`)
+
+#### **Vista General**
+- **Header:** Nombre, estado, fechas, progreso general
+- **Métricas Clave:** SPI, SV, porcentaje completado
+- **Equipo:** Lista de miembros con roles
+- **Fases:** Accordion con tareas por fase
+
+#### **Métricas de Rendimiento**
+
+##### **SPI (Índice de Rendimiento del Cronograma)**
+```
+Fórmula: SPI = Progreso Real / Progreso Planificado
+
+Interpretación:
+- SPI > 1.0: Adelantado (más eficiente)
+- SPI = 1.0: En tiempo (según plan)
+- SPI < 1.0: Atrasado (menos eficiente)
+
+Ejemplo: SPI = 1.2 (20% más eficiente que lo planeado)
+```
+
+##### **SV (Variación del Cronograma)**
+```
+Fórmula: SV = Progreso Real - Progreso Planificado
+
+Interpretación:
+- SV > 0: Adelantado
+- SV = 0: En tiempo
+- SV < 0: Atrasado
+
+Ejemplo: SV = +20 horas (20 horas adelantado)
+```
+
+##### **Estados del Proyecto**
+- 🟢 **Muy Adelantado:** SV > 10%
+- 🟡 **Adelantado:** SV 5-10%
+- 🔵 **En Tiempo:** SV -5% a +5%
+- 🟠 **Atrasado:** SV -5% a -10%
+- 🔴 **Muy Atrasado:** SV < -10%
+
+#### **Curva S (Gráfico de Progreso)**
+- **Eje X:** Tiempo (fechas del proyecto)
+- **Eje Y:** Progreso acumulado (porcentaje)
+- **Líneas:**
+  - Línea azul: Progreso planificado
+  - Línea verde: Progreso real
+  - Área sombreada: Variación
+
+#### **Reportes Automáticos**
+- **Frecuencia:** Diaria/semanal/mensual
+- **Contenido:**
+  - Resumen ejecutivo
+  - Métricas detalladas
+  - Diagrama de Gantt actualizado
+  - Lista de tareas críticas
+  - Recomendaciones de acción
+
+### Seguimiento en Tiempo Real
+
+#### **Notificaciones Automáticas**
+- ✅ Tarea completada por usuario
+- ✅ Cambio en estado del proyecto
+- ✅ Vencimiento de plazos
+- ✅ Uniones/salidas de miembros
+- ✅ Actualizaciones de cronograma
+
+#### **Alertas y Avisos**
+- 🚨 Tareas vencidas
+- ⚠️ Proyectos en riesgo (SPI < 0.8)
+- 📅 Recordatorios de tareas próximas
+- 👥 Cambios en asignación de equipo
+
+---
+
+## 🚀 9. RECOMENDACIONES PARA DESARROLLO FUTURO
+
+### Temas Clave a Desarrollar
+
+#### **1. Optimización de Código**
+- [ ] **Refactorización completa:** Separar responsabilidades, eliminar código duplicado
+- [ ] **Componentes reutilizables:** Crear sistema de componentes modulares
+- [ ] **TypeScript:** Migrar a TypeScript para mejor mantenibilidad
+- [ ] **Testing:** Implementar suite de pruebas unitarias e integración
+- [ ] **Performance:** Lazy loading, code splitting, optimización de bundle
+
+#### **2. Arquitectura y Escalabilidad**
+- [ ] **Microservicios:** Separar frontend/backend en servicios independientes
+- [ ] **API RESTful completa:** Endpoints estandarizados con documentación OpenAPI
+- [ ] **Base de datos relacional:** Evaluar migración a PostgreSQL/MySQL
+- [ ] **Cache distribuido:** Redis para mejorar rendimiento
+- [ ] **CDN:** Implementar CDN para assets estáticos
+
+#### **3. Funcionalidades Avanzadas**
+- [ ] **Gestión de dependencias:** Entre tareas y fases
+- [ ] **Asignación automática:** Basada en habilidades y disponibilidad
+- [ ] **Integraciones:** Slack, Microsoft Teams, Jira, Trello
+- [ ] **Mobile App:** Aplicación móvil nativa o PWA
+- [ ] **IA/ML:** Predicciones de riesgo, estimaciones automáticas
+
+#### **4. Seguridad y Compliance**
+- [ ] **Auditoría completa:** Logs detallados de todas las acciones
+- [ ] **Encriptación:** Datos sensibles en reposo y en tránsito
+- [ ] **GDPR Compliance:** Manejo de datos personales
+- [ ] **2FA:** Autenticación de dos factores
+- [ ] **Backup automático:** Estrategia de respaldo y recuperación
+
+#### **5. UX/UI y Accesibilidad**
+- [ ] **Rediseño completo:** UI moderna con design system
+- [ ] **Accesibilidad WCAG 2.1:** Cumplimiento total
+- [ ] **Internacionalización:** Soporte multi-idioma
+- [ ] **Modo oscuro:** Tema oscuro para reducción de fatiga visual
+- [ ] **PWA:** Progressive Web App con instalación offline
+
+#### **6. DevOps y Mantenimiento**
+- [ ] **CI/CD Pipeline:** Automatización completa de despliegue
+- [ ] **Monitoring:** Dashboards de rendimiento y errores
+- [ ] **Documentación técnica:** Guías completas para desarrolladores
+- [ ] **Versionado semántico:** Estrategia clara de releases
+- [ ] **Soporte multi-entorno:** Desarrollo, staging, producción
+
+### Próximos Pasos Inmediatos
+
+#### **Prioridad Alta (1-2 semanas)**
+1. **Limpieza de código:** Eliminar funciones no utilizadas, optimizar algoritmos
+2. **Consistencia de métricas:** Unificar cálculos en vistaProyecto
+3. **Corrección de curva S:** Asegurar datos precisos y consistentes
+4. **Validación de formularios:** Mejorar UX en creación de proyectos
+
+#### **Prioridad Media (2-4 semanas)**
+1. **Sistema de notificaciones mejorado:** Templates HTML, programador de envíos
+2. **Gestión avanzada de usuarios:** Bulk operations, import/export
+3. **Reportes customizables:** Filtros, formatos múltiples
+4. **API Backend robusta:** Endpoints REST completos
+
+#### **Prioridad Baja (1-3 meses)**
+1. **Migración a framework moderno:** React/Vue para mejor mantenibilidad
+2. **Sistema de plugins:** Arquitectura extensible
+3. **Analytics integrado:** Métricas de uso y rendimiento
+4. **Integración con ERP:** SAP, Oracle, otros sistemas empresariales
+
+---
+
+## 📞 CONTACTO Y SOPORTE
+
+**Desarrollador Principal:**
+- **Nombre:** Gómez Fredy SAP
+- **Email:** gomez.fredy.sap@gmail.com
+- **Teléfono:** +57 3203284420
+- **LinkedIn:** [Perfil profesional]
+
+**Documentación Técnica:**
+- **Repositorio:** [URL del repositorio]
+- **Wiki:** [URL de documentación]
+- **Issues:** [Sistema de tickets]
+
+**Soporte de Producción:**
+- **Email:** soporte@pdtfutura.com
+- **Horario:** Lunes a Viernes, 8:00 AM - 6:00 PM (GMT-5)
+- **SLA:** Respuesta en menos de 24 horas para issues críticos
+
+---
+
+**Última actualización:** 18 de octubre de 2025
+**Versión del documento:** 3.1
+**Estado:** En desarrollo activo

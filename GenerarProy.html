@@ -31,19 +31,70 @@
         }
         .checkbox-group label { margin-right: 15px; }
 
-        /* Calendar Styles */
-        #holiday-calendar { display:none; margin-top: 10px; background: #2a2a3a; padding: 10px; border-radius: 5px; }
-        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
-        .calendar-grid div { padding: 5px; border-radius: 3px; }
-        .day-name { font-weight: bold; font-size: 0.8em; }
-        .day-number { cursor: pointer; }
-        .day-number:hover { background-color: #4a4a5a; }
-        .day-number.selected { background-color: #2575fc; color: white; }
-        #loading-spinner { display: none; text-align: center; margin-top: 15px; }
-        #loading-spinner progress { width: 100%; margin-top: 5px; }
-        #authorized-users-list { list-style: none; padding: 0; margin-top: 10px; }
-        #authorized-users-list li { background: #333; padding: 5px; border-radius: 3px; margin-bottom: 5px; }
+        /* Logo en el footer */
+        .footer-logo {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50%;
+            max-width: 150px;
+            z-index: 10;
+            text-align: center;
+            transition: all 0.3s ease;
+            opacity: 0.7;
+        }
+
+        .footer-logo img {
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.5));
+            transition: all 0.3s ease;
+        }
+
+        /* Efecto de reflejo cuando la luz pasa sobre el logo */
+        .footer-logo.reflected img {
+            filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.8))
+                    brightness(1.2);
+        }
+
+        /* Animación de progreso mejorada */
+        #loading-spinner {
+            display: none;
+            text-align: center;
+            margin-top: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        #creation-progress {
+            width: 100%;
+            height: 20px;
+            border-radius: 10px;
+            background: #333;
+            overflow: hidden;
+        }
+
+        #creation-progress::-webkit-progress-bar {
+            background: #333;
+        }
+
+        #creation-progress::-webkit-progress-value {
+            background: linear-gradient(90deg, #2575fc, #6a11cb);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        #creation-progress::-moz-progress-bar {
+            background: linear-gradient(90deg, #2575fc, #6a11cb);
+            border-radius: 10px;
+        }
+
+        #progress-status {
+            margin-top: 10px;
+            font-weight: bold;
+            color: #87cefa;
+        }
     </style>
 </head>
 <body>
@@ -52,8 +103,8 @@
 
         <div class="form-section">
             <h2>1. Generar Plantilla</h2>
-            <p>Descargue la plantilla para llenar los datos del proyecto.</p>
-            <button id="generate-template" class="btn">Generar Plantilla (CSV)</button>
+            <p>Descargue la plantilla Excel organizada para llenar los datos del proyecto.</p>
+            <button id="generate-template" class="btn">Generar Plantilla Excel</button>
         </div>
 
         <div class="form-section">
@@ -61,36 +112,15 @@
             <label for="project-name">Nombre del Proyecto:</label>
             <input type="text" id="project-name" placeholder="Ingrese el nombre del proyecto" required>
             
+            <label for="project-description">Descripción del Proyecto:</label>
+            <textarea id="project-description" placeholder="Ingrese la descripción del proyecto" rows="3" style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ccc; background-color: #333; color: white;"></textarea>
+
             <label for="project-start-date">Fecha de Inicio del Proyecto:</label>
             <input type="date" id="project-start-date" required>
-
-            <div class="checkbox-group">
-                <p>Omitir en cálculo de fechas:</p>
-                <label><input type="checkbox" id="skip-saturday"> Sábados</label>
-                <label><input type="checkbox" id="skip-sunday" checked> Domingos</label>
-                <label><input type="checkbox" id="skip-holidays"> Festivos</label>
-            </div>
-            
-            <div id="holiday-calendar">
-                <div class="calendar-header">
-                    <button id="prev-month" class="btn">&lt;</button>
-                    <h3 id="month-year"></h3>
-                    <button id="next-month" class="btn">&gt;</button>
-                </div>
-                <div class="calendar-grid" id="calendar-days"></div>
-            </div>
         </div>
 
         <div class="form-section">
-            <h2>3. Usuarios Autorizados</h2>
-            <p>Agregue los correos de los usuarios que tendrán acceso a este proyecto. El administrador tiene acceso por defecto.</p>
-            <input type="email" id="user-email-input" placeholder="correo@ejemplo.com">
-            <button id="add-user-btn" class="btn">Agregar Usuario</button>
-            <ul id="authorized-users-list"></ul>
-        </div>
-
-        <div class="form-section">
-            <h2>4. Cargar Archivo del Proyecto</h2>
+            <h2>3. Cargar Archivo del Proyecto</h2>
             <p>Seleccione el archivo CSV/Excel con los datos del proyecto.</p>
             <input type="file" id="project-file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" required>
             <button id="load-project" class="btn">Cargar y Crear Proyecto</button>
@@ -121,7 +151,6 @@
         }
         const auth = firebase.auth();
         const db = firebase.firestore();
-        let authorizedUsers = new Set(['admin@gnce.com']);
 
         auth.onAuthStateChanged(user => {
             if (user && user.email === 'admin@gnce.com') {
@@ -133,129 +162,111 @@
         });
 
         document.getElementById('generate-template').addEventListener('click', () => {
-            const headers = "Tarea,Duracion (Hora),Hito";
-            const examplePhase1 = '"Fase 1: Etapa de analisis",,';
-            const exampleTask1 = 'revisar,7,x';
-            const exampleTask2 = 'analizar,9,';
-            const exampleTask3 = 'reportar,4,';
-            const examplePhase2 = '"Fase 2: Etapa de analisis viabilidad",,';
-            const exampleTask4 = 'evaluar tecnologia,4,';
-
-            const csvContent = [headers, examplePhase1, exampleTask1, exampleTask2, exampleTask3, examplePhase2, exampleTask4].join('\n');
+            // Crear un nuevo workbook
+            const wb = XLSX.utils.book_new();
             
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            // Crear la hoja de instrucciones
+            const instructionsData = [
+                ['INSTRUCCIONES PARA LLENAR LA PLANTILLA'],
+                [''],
+                ['Esta plantilla está organizada para facilitar la creación de proyectos en PDT Futura.'],
+                [''],
+                ['📋 REGLAS IMPORTANTES:'],
+                ['• Las filas que empiezan con "Fase" definen fases del proyecto'],
+                ['• Las demás filas son tareas dentro de la fase actual'],
+                ['• Duración en horas (puede usar decimales: 2.5, 0.75, etc.)'],
+                ['• Coloque "x" en la columna Hito para marcar hitos importantes'],
+                ['• Deje filas vacías entre fases para mejor organización'],
+                ['• Guarde el archivo como Excel (.xlsx) y cárguelo en la herramienta'],
+                [''],
+                ['📊 ESTRUCTURA DE COLUMNAS:'],
+                ['• Tarea: Nombre de la fase o tarea'],
+                ['• Duración (Horas): Tiempo estimado en horas'],
+                ['• Hito: "x" si es un hito importante, vacío si es tarea normal'],
+                [''],
+                ['💡 EJEMPLOS DE DURACIONES:'],
+                ['• 8 horas = 1 día laboral completo'],
+                ['• 4 horas = medio día'],
+                ['• 16 horas = 2 días laborales'],
+                ['• 2.5 horas = 2 horas y 30 minutos'],
+                ['']
+            ];
+            
+            const instructionsWS = XLSX.utils.aoa_to_sheet(instructionsData);
+            
+            // Crear la hoja de plantilla
+            const templateData = [
+                ['Tarea', 'Duración (Horas)', 'Hito'],
+                [''],
+                ['Fase 1: Análisis y Planificación', '', ''],
+                ['Revisar requerimientos del cliente', 8, ''],
+                ['Analizar viabilidad técnica', 12, ''],
+                ['Elaborar plan de proyecto detallado', 6, 'x'],
+                [''],
+                ['Fase 2: Desarrollo e Implementación', '', ''],
+                ['Implementar funcionalidad principal', 16, ''],
+                ['Desarrollar interfaz de usuario', 10, ''],
+                ['Realizar pruebas unitarias', 8, ''],
+                ['Liberar versión beta', 4, 'x'],
+                [''],
+                ['Fase 3: Pruebas y Despliegue', '', ''],
+                ['Ejecutar pruebas de integración', 12, ''],
+                ['Realizar pruebas de aceptación con usuario', 8, ''],
+                ['Preparar documentación técnica', 4, ''],
+                ['Desplegar en producción', 2, 'x'],
+                [''],
+                ['Fase 4: Soporte y Mantenimiento', '', ''],
+                ['Capacitación al equipo de soporte', 4, ''],
+                ['Monitoreo inicial del sistema', 8, ''],
+                ['Entrega final del proyecto', 2, 'x']
+            ];
+            
+            const templateWS = XLSX.utils.aoa_to_sheet(templateData);
+            
+            // Configurar anchos de columna para mejor visualización
+            instructionsWS['!cols'] = [{ width: 60 }];
+            templateWS['!cols'] = [
+                { width: 40 }, // Columna Tarea
+                { width: 18 }, // Columna Duración
+                { width: 8 }   // Columna Hito
+            ];
+            
+            // Agregar las hojas al workbook
+            XLSX.utils.book_append_sheet(wb, instructionsWS, 'Instrucciones');
+            XLSX.utils.book_append_sheet(wb, templateWS, 'Plantilla Proyecto');
+            
+            // Generar el archivo Excel
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            
+            // Crear enlace de descarga de forma más compatible
             const link = document.createElement("a");
-            if (link.download !== undefined) {
-                const url = URL.createObjectURL(blob);
-                link.setAttribute("href", url);
-                link.setAttribute("download", "plantilla_proyecto_simple.csv");
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }
-        });
-
-        // --- User Management Logic ---
-        const userEmailInput = document.getElementById('user-email-input');
-        const addUserBtn = document.getElementById('add-user-btn');
-        const usersListEl = document.getElementById('authorized-users-list');
-
-        function renderAuthorizedUsers() {
-            usersListEl.innerHTML = '';
-            authorizedUsers.forEach(email => {
-                const li = document.createElement('li');
-                li.textContent = email;
-                usersListEl.appendChild(li);
-            });
-        }
-
-        addUserBtn.addEventListener('click', () => {
-            const email = userEmailInput.value.trim();
-            if (email) {
-                authorizedUsers.add(email.toLowerCase());
-                userEmailInput.value = '';
-                renderAuthorizedUsers();
-            }
-        });
-
-        // --- Calendar Logic ---
-        const skipHolidaysCheckbox = document.getElementById('skip-holidays');
-        const holidayCalendar = document.getElementById('holiday-calendar');
-        const monthYearEl = document.getElementById('month-year');
-        const calendarDaysEl = document.getElementById('calendar-days');
-        let currentDate = new Date();
-        let selectedHolidays = new Set();
-
-        skipHolidaysCheckbox.addEventListener('change', (e) => {
-            holidayCalendar.style.display = e.target.checked ? 'block' : 'none';
-        });
-
-        function renderCalendar() {
-            const month = currentDate.getMonth();
-            const year = currentDate.getFullYear();
-            monthYearEl.textContent = `${currentDate.toLocaleString('es-ES', { month: 'long' })} ${year}`;
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.download = "plantilla_proyecto_pdt_futura.xlsx";
+            link.style.display = 'none';
             
-            calendarDaysEl.innerHTML = '';
-            const dayNames = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
-            dayNames.forEach(name => {
-                const dayNameEl = document.createElement('div');
-                dayNameEl.className = 'day-name';
-                dayNameEl.textContent = name;
-                calendarDaysEl.appendChild(dayNameEl);
-            });
-
-            const firstDayOfMonth = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-            for (let i = 0; i < firstDayOfMonth; i++) {
-                calendarDaysEl.appendChild(document.createElement('div'));
-            }
-
-            for (let i = 1; i <= daysInMonth; i++) {
-                const dayEl = document.createElement('div');
-                dayEl.className = 'day-number';
-                dayEl.textContent = i;
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-                if (selectedHolidays.has(dateStr)) {
-                    dayEl.classList.add('selected');
-                }
-                dayEl.addEventListener('click', () => {
-                    if (selectedHolidays.has(dateStr)) {
-                        selectedHolidays.delete(dateStr);
-                        dayEl.classList.remove('selected');
-                    } else {
-                        selectedHolidays.add(dateStr);
-                        dayEl.classList.add('selected');
-                    }
-                });
-                calendarDaysEl.appendChild(dayEl);
-            }
-        }
-        document.getElementById('prev-month').addEventListener('click', () => {
-            currentDate.setMonth(currentDate.getMonth() - 1);
-            renderCalendar();
+            // Forzar la descarga
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Limpiar el URL object
+            setTimeout(() => URL.revokeObjectURL(url), 100);
         });
-        document.getElementById('next-month').addEventListener('click', () => {
-            currentDate.setMonth(currentDate.getMonth() + 1);
-            renderCalendar();
-        });
-        renderCalendar(); // Initial render
-        renderAuthorizedUsers(); // Show admin by default
 
         // --- Project Loading Logic ---
         document.getElementById('load-project').addEventListener('click', async () => {
             const projectName = document.getElementById('project-name').value;
-            // Usar valueAsDate para obtener un objeto Date directamente, evitando problemas de formato
+            const projectDescription = document.getElementById('project-description').value;
             const startDateInput = document.getElementById('project-start-date').valueAsDate;
             const projectFile = document.getElementById('project-file').files[0];
 
-            if (!projectName || !startDateInput || !projectFile) {
-                alert('Por favor, complete todos los campos: Nombre, Fecha de Inicio y Archivo.');
+            if (!projectName || !projectDescription || !startDateInput || !projectFile) {
+                alert('Por favor, complete todos los campos: Nombre, Descripción, Fecha de Inicio y Archivo.');
                 return;
             }
             
-            // Ajustar la fecha a la hora de inicio de la jornada en la zona horaria local
             const startDate = new Date(startDateInput.getFullYear(), startDateInput.getMonth(), startDateInput.getDate(), 9, 0, 0, 0);
 
             document.getElementById('loading-spinner').style.display = 'block';
@@ -265,94 +276,89 @@
             try {
                 let json;
                 
-                // Determinar si es un archivo CSV o Excel basado en la extensión
                 const fileName = projectFile.name.toLowerCase();
                 const isCSV = fileName.endsWith('.csv');
                 
                 if (isCSV) {
-                    // Para archivos CSV, usar FileReader con codificación UTF-8
-                    const text = await new Promise((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.onload = (e) => resolve(e.target.result);
-                        reader.onerror = reject;
-                        reader.readAsText(projectFile, 'UTF-8');
-                    });
-                    
-                    // Parsear CSV manualmente manteniendo la codificación UTF-8
-                    const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-                    json = lines.map(line => {
-                        const result = [];
-                        let current = '';
-                        let inQuotes = false;
-                        
-                        for (let i = 0; i < line.length; i++) {
-                            const char = line[i];
-                            if (char === '"') {
-                                if (inQuotes && line[i + 1] === '"') {
-                                    current += '"';
-                                    i++; // skip next quote
-                                } else {
-                                    inQuotes = !inQuotes;
-                                }
-                            } else if (char === ',' && !inQuotes) {
-                                result.push(current);
-                                current = '';
-                            } else {
-                                current += char;
-                            }
-                        }
-                        result.push(current);
-                        return result;
-                    });
+                    const arrayBuffer = await projectFile.arrayBuffer();
+                    let text = new TextDecoder('utf-8').decode(arrayBuffer);
+                    if (text.includes('�')) {
+                        text = new TextDecoder('windows-1252').decode(arrayBuffer);
+                    }
+                    const workbook = XLSX.read(text, { type: 'string' });
+                    const sheetName = workbook.SheetNames.find(name => name.toLowerCase().includes('plantilla proyecto'));
+                    if (!sheetName) {
+                        throw new Error("No se encontró la hoja 'Plantilla Proyecto' en el archivo Excel. Asegúrese de usar la plantilla generada por la herramienta.");
+                    }
+                    const worksheet = workbook.Sheets[sheetName];
+                    json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
                 } else {
-                    // Para archivos Excel, usar SheetJS
                     const data = await projectFile.arrayBuffer();
                     const workbook = XLSX.read(data);
-                    const sheetName = workbook.SheetNames[0];
+                    console.log('Hojas encontradas en el archivo:', workbook.SheetNames);
+                    const sheetName = workbook.SheetNames.find(name => name.toLowerCase().includes('plantilla proyecto'));
+                    if (!sheetName) {
+                        throw new Error("No se encontró la hoja 'Plantilla Proyecto' en el archivo Excel. Asegúrese de usar la plantilla generada por la herramienta.");
+                    }
                     const worksheet = workbook.Sheets[sheetName];
                     json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
                 }
 
-                const headerRow = json.find(row => row.some(cell => typeof cell === 'string' && cell.toLowerCase().includes('tarea')));
+                const headerRow = json.find(row => row && row.some(cell => {
+                    const cellStr = String(cell || '').toLowerCase().trim();
+                    return cellStr === 'tarea';
+                }));
                 const headerIndex = headerRow ? json.indexOf(headerRow) : -1;
 
                 if (headerIndex === -1) {
-                    throw new Error("No se encontró una fila de encabezado que contenga la palabra 'Tarea'.");
+                    console.error('Filas analizadas:', json.slice(0, 10));
+                    throw new Error("No se encontró la fila de encabezado con 'Tarea' en la hoja 'Plantilla Proyecto'. Verifique que esté usando la plantilla correcta generada por la herramienta.");
                 }
 
-                // Dynamically find column indices based on header text
                 const colIndices = {};
                 headerRow.forEach((header, index) => {
-                    const h = String(header || '').toLowerCase();
-                    if (h.includes('tarea')) colIndices.name = index;
-                    if (h.includes('duracion')) colIndices.durationHours = index;
-                    if (h.includes('hito')) colIndices.isMilestone = index;
+                    const h = String(header || '').toLowerCase().trim();
+                    if (h === 'tarea') colIndices.name = index;
+                    if (h === 'duración (horas)' || h === 'duracion (horas)') colIndices.durationHours = index;
+                    if (h === 'hito') colIndices.isMilestone = index;
                 });
 
                 if (colIndices.name === undefined || colIndices.durationHours === undefined || colIndices.isMilestone === undefined) {
-                    throw new Error("La fila de encabezado debe contener las columnas 'Tarea', 'Duracion (Hora)' y 'Hito'.");
+                    console.error('Encabezados encontrados:', headerRow);
+                    console.error('Índices detectados:', colIndices);
+                    throw new Error(`Los encabezados deben ser exactamente: 'Tarea', 'Duración (Horas)', 'Hito'. Encabezados encontrados: ${headerRow.join(', ')}`);
                 }
+
+                console.log('Columnas detectadas correctamente:', {
+                    tarea: colIndices.name,
+                    duracion: colIndices.durationHours,
+                    hito: colIndices.isMilestone
+                });
 
                 const rowsToProcess = json.slice(headerIndex + 1).filter(row => row && row.length > 0 && row.some(cell => cell !== null && cell !== ''));
                 
                 progressBar.max = rowsToProcess.length;
                 progressBar.value = 0;
-                progressStatus.textContent = 'Iniciando...';
+                progressStatus.textContent = 'Procesando archivo...';
 
                 const projectData = {
                     projectName: projectName,
+                    description: projectDescription,
                     createdAt: firebase.firestore.Timestamp.fromDate(new Date()),
                     startDate: firebase.firestore.Timestamp.fromDate(startDate),
                     phases: [],
-                    authorizedUsers: Array.from(authorizedUsers),
                     settings: {
-                        skipSaturday: document.getElementById('skip-saturday').checked,
-                        skipSunday: document.getElementById('skip-sunday').checked,
-                        holidays: Array.from(selectedHolidays)
+                        skipSaturday: true,
+                        skipSunday: true,
+                        holidays: []
                     }
                 };
 
+                projectData.holidays = projectData.settings.holidays;
+
                 let currentPhase = null;
+                let processedRows = 0;
+                
                 for (const row of rowsToProcess) {
                     const firstCell = String(row[0] || '').trim();
                     const isPhaseRow = firstCell.toLowerCase().startsWith('fase');
@@ -363,9 +369,7 @@
                         }
                         currentPhase = { name: firstCell, tasks: [] };
                     } else if (row[colIndices.name] && String(row[colIndices.name]).trim() !== '') {
-                        // This is a task row if the task name is not empty
                         if (!currentPhase) {
-                            // If a task appears before any phase is defined, create a default phase.
                             currentPhase = { name: 'General', tasks: [] };
                         }
                         const rawDuration = row[colIndices.durationHours];
@@ -377,73 +381,41 @@
                         };
                         currentPhase.tasks.push(task);
                     }
+                    
+                    processedRows++;
+                    progressBar.value = processedRows;
+                    progressStatus.textContent = `Procesando fila ${processedRows} de ${rowsToProcess.length}...`;
+                    await new Promise(resolve => setTimeout(resolve, 10));
                 }
-                // Add the last phase to the project
+                
                 if (currentPhase) {
                     projectData.phases.push(currentPhase);
                 }
 
-                // Calculate task dates
+                progressStatus.textContent = 'Calculando fechas...';
                 calculateAllTaskDates(projectData);
 
-                // *** DEBUG: Imprimir el objeto antes de guardar ***
+                progressStatus.textContent = 'Guardando proyecto...';
                 console.log("Datos que se enviarán a Firestore:", JSON.stringify(projectData, null, 2));
 
-                // Generate ID and save to Firestore
                 const d = new Date();
                 const projectId = `${String(d.getDate()).padStart(2, '0')}${String(d.getMonth() + 1).padStart(2, '0')}${d.getFullYear()}${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}`;
 
-                // Try to write and capture detailed errors
                 try {
-                    // Enable additional debug logging if available
-                    try {
-                        if (firebase && firebase.firestore && typeof firebase.firestore.setLogLevel === 'function') {
-                            firebase.firestore.setLogLevel('debug');
-                        }
-                    } catch (e) {
-                        console.warn('No se pudo activar setLogLevel:', e);
+                    if (firebase && firebase.firestore && typeof firebase.firestore.setLogLevel === 'function') {
+                        firebase.firestore.setLogLevel('debug');
                     }
+                } catch (e) {
+                    console.warn('No se pudo activar setLogLevel:', e);
+                }
 
-                    await db.collection('projects').doc(projectId).set(projectData);
+                await db.collection('projects').doc(projectId).set(projectData);
 
+                progressStatus.textContent = '¡Proyecto creado exitosamente!';
+                setTimeout(() => {
                     alert(`Proyecto "${projectName}" creado con éxito.`);
                     window.location.href = `proyectos.html`;
-                } catch (writeError) {
-                    // Show detailed error info in console and in-page
-                    console.error('Error durante write() a Firestore:', writeError);
-
-                    // Try to surface useful HTTP response info if present
-                    const errorDetails = {
-                        message: writeError && writeError.message ? writeError.message : String(writeError),
-                        stack: writeError && writeError.stack ? writeError.stack : null,
-                    };
-
-                    // If the error has additional fields (some SDK internal objects), include them
-                    if (writeError && typeof writeError === 'object') {
-                        for (const k of Object.keys(writeError)) {
-                            try { errorDetails[k] = writeError[k]; } catch (e) { /* ignore */ }
-                        }
-                    }
-
-                    // Render an error box in the UI with copyable text
-                    let errorBox = document.getElementById('firestore-error-box');
-                    if (!errorBox) {
-                        errorBox = document.createElement('div');
-                        errorBox.id = 'firestore-error-box';
-                        errorBox.style.background = '#ffdddd';
-                        errorBox.style.color = '#600';
-                        errorBox.style.padding = '10px';
-                        errorBox.style.border = '1px solid #900';
-                        errorBox.style.borderRadius = '6px';
-                        errorBox.style.marginTop = '10px';
-                        const parent = document.querySelector('.form-section:last-of-type') || document.body;
-                        parent.appendChild(errorBox);
-                    }
-
-                    errorBox.innerText = 'Error al guardar en Firestore: ' + (errorDetails.message || 'Unknown error') + '\n\nDetalles:\n' + JSON.stringify(errorDetails, null, 2);
-
-                    alert('Ocurrió un error al intentar guardar en Firestore. Revise la consola y el cuadro de error en la página.');
-                }
+                }, 500);
 
             } catch (error) {
                 console.error("Error al crear el proyecto:", error);
@@ -453,42 +425,57 @@
             }
         });
 
+        // Función para sanitizar holidays
+        function sanitizeHolidays(holidays) {
+            if (!Array.isArray(holidays)) return [];
+            return holidays.filter(h => h && typeof h.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(h.date.trim())).map(h => ({
+                date: h.date.trim(),
+                name: (h.name || '').trim()
+            }));
+        }
+
         function calculateAllTaskDates(projectData) {
             const options = projectData.settings;
-            let lastEndDate = new Date(projectData.startDate.toDate());
+            
+            const shiftStartTime = projectData.shiftStartTime || '09:00';
+            const [shiftStartHour, shiftStartMin] = shiftStartTime.split(':').map(Number);
+            const shiftEndTime = projectData.shiftEndTime || '18:00';
+            const [shiftEndHour, shiftEndMin] = shiftEndTime.split(':').map(Number);
+            const shiftBreakHours = projectData.shiftBreakHours || 1;
+            const shiftBreakStartTime = projectData.shiftBreakStartTime || '13:00';
+            const [shiftBreakStartHour, shiftBreakStartMin] = shiftBreakStartTime.split(':').map(Number);
+            const shiftBreakEndHour = shiftBreakStartHour + shiftBreakHours;
+            const shiftBreakEndMin = shiftBreakStartMin;
+            
+            options.shiftStartHour = shiftStartHour;
+            options.shiftEndHour = shiftEndHour;
+            options.shiftBreakHours = shiftBreakHours;
+            options.shiftBreakStartHour = shiftBreakStartHour;
+            options.shiftBreakStartMin = shiftBreakStartMin;
+            options.shiftBreakEndHour = shiftBreakEndHour;
+            options.shiftBreakEndMin = shiftBreakEndMin;
+            options.holidays = sanitizeHolidays(options.holidays || []);
+            
+            let lastEndDate = moveToNextWorkableMoment(new Date(projectData.startDate.toDate()), options);
 
             projectData.phases.forEach(phase => {
                 phase.tasks.forEach(task => {
-                    // La fecha de inicio de una tarea es el final de la anterior,
-                    // ajustada al próximo momento hábil.
-                    const taskStartDate = moveToNextWorkableMoment(new Date(lastEndDate), options);
+                    const taskStartDate = new Date(lastEndDate);
                     task.startDate = firebase.firestore.Timestamp.fromDate(taskStartDate);
+                    task.startTime = taskStartDate.getHours().toString().padStart(2, '0') + ':' + taskStartDate.getMinutes().toString().padStart(2, '0');
                     
                     const taskEndDate = getEndDate(new Date(taskStartDate), task.durationHours, options);
                     task.endDate = firebase.firestore.Timestamp.fromDate(taskEndDate);
+                    task.endTime = taskEndDate.getHours().toString().padStart(2, '0') + ':' + taskEndDate.getMinutes().toString().padStart(2, '0');
                     
                     lastEndDate = taskEndDate;
                 });
             });
         }
 
-        // =================================================================================
-        // NEW DATE CALCULATION LOGIC
-        // =================================================================================
-
-        const WORK_DAY_START_HOUR = 9;
-        const WORK_DAY_END_HOUR = 17;
-
-        /**
-         * Checks if a given date is a workday (not a weekend or holiday).
-         * @param {Date} date - The date to check.
-         * @param {object} options - Scheduling options.
-         * @returns {boolean} - True if it's a workday.
-         */
         function isWorkDay(date, options) {
-            // Use local date components to match the UI calendar and user expectations
             const { skipSaturday, skipSunday, holidays } = options;
-            const day = date.getDay(); // local day: 0 (Sunday) - 6 (Saturday)
+            const day = date.getDay();
 
             if (skipSunday && day === 0) return false;
             if (skipSaturday && day === 6) return false;
@@ -507,51 +494,34 @@
             return true;
         }
 
-        /**
-         * Moves a date to the beginning of the next workable moment.
-         * - If it's a non-workday, it moves to the start of the next workday.
-         * - If it's after work hours, it moves to the start of the next workday.
-         * - If it's before work hours on a workday, it moves to the start of that workday.
-         * @param {Date} date - The initial date.
-         * @param {object} options - Scheduling options.
-         * @returns {Date} - The adjusted date.
-         */
         function moveToNextWorkableMoment(date, options) {
-            // Work in local time and round to minute precision
             let newDate = new Date(date);
 
-            // If current time is AT or after work hours, start from the next day at start hour
-            if (newDate.getHours() >= WORK_DAY_END_HOUR) {
+            if (newDate.getHours() >= (options.shiftEndHour - options.shiftBreakHours)) {
                 newDate.setDate(newDate.getDate() + 1);
-                newDate.setHours(WORK_DAY_START_HOUR, 0, 0, 0);
+                newDate.setHours(options.shiftStartHour, 0, 0, 0);
             }
 
-            // Skip any non-workdays (weekends/holidays)
             while (!isWorkDay(newDate, options)) {
                 newDate.setDate(newDate.getDate() + 1);
-                newDate.setHours(WORK_DAY_START_HOUR, 0, 0, 0);
+                newDate.setHours(options.shiftStartHour, 0, 0, 0);
             }
 
-            // If it's a workday but before work hours, adjust to the start hour.
-            if (newDate.getHours() < WORK_DAY_START_HOUR) {
-                newDate.setHours(WORK_DAY_START_HOUR, 0, 0, 0);
+            if (newDate.getHours() < options.shiftStartHour) {
+                newDate.setHours(options.shiftStartHour, 0, 0, 0);
+            }
+
+            if ((newDate.getHours() > options.shiftBreakStartHour || (newDate.getHours() === options.shiftBreakStartHour && newDate.getMinutes() >= options.shiftBreakStartMin)) &&
+                (newDate.getHours() < options.shiftBreakEndHour || (newDate.getHours() === options.shiftBreakEndHour && newDate.getMinutes() < options.shiftBreakEndMin))) {
+                newDate.setHours(options.shiftBreakEndHour, options.shiftBreakEndMin, 0, 0);
             }
 
             return newDate;
         }
 
-        /**
-         * Calculates the end date of a task given a start date and duration.
-         * @param {Date} startDate - The start date of the task.
-         * @param {number} durationHours - The duration of the task in hours.
-         * @param {object} options - Scheduling options.
-         * @returns {Date} - The calculated end date.
-         */
         function getEndDate(startDate, durationHours, options) {
-            // Accept fractional hours (e.g., 0.5 = 30 minutes)
             const duration = Number(durationHours);
             if (!isFinite(duration) || duration < 0) {
-                // Invalid duration: treat as zero-length
                 return new Date(startDate);
             }
 
@@ -559,7 +529,6 @@
                 return new Date(startDate);
             }
 
-            // Convert total duration to minutes for fine-grained calculation
             let remainingMinutes = Math.round(duration * 60);
             let currentDate = new Date(startDate);
 
@@ -568,12 +537,20 @@
 
                 const currentHour = currentDate.getHours();
                 const currentMinute = currentDate.getMinutes();
-                const minutesLeftInDay = (WORK_DAY_END_HOUR - currentHour) * 60 - currentMinute;
+                const effectiveEndHour = options.shiftEndHour;
+                let minutesLeftInDay = (effectiveEndHour - currentHour) * 60 - currentMinute;
+
+                if (currentHour < options.shiftBreakStartHour && options.shiftBreakEndHour < effectiveEndHour) {
+                    minutesLeftInDay -= options.shiftBreakHours * 60;
+                }
+
+                if (currentHour >= options.shiftBreakStartHour && currentHour < options.shiftBreakEndHour) {
+                    minutesLeftInDay = 0;
+                }
 
                 if (minutesLeftInDay <= 0) {
-                    // Move to next workday start
                     currentDate.setDate(currentDate.getDate() + 1);
-                    currentDate.setHours(WORK_DAY_START_HOUR, 0, 0, 0);
+                    currentDate.setHours(options.shiftStartHour, 0, 0, 0);
                     continue;
                 }
 

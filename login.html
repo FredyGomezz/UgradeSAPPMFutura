@@ -25,18 +25,46 @@
         }
 
         .logo-container {
+            width: 50%;
+            max-width: 150px;
+            margin-bottom: 15px;
+            z-index: 10;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .logo-container img {
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.5));
+            transition: all 0.3s ease;
+        }
+
+        /* Efecto de reflejo cuando la luz pasa sobre el logo */
+        .logo-container.reflected img {
+            filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.8)) 
+                    brightness(1.2);
+        }
+
+        .logo-text-container {
+            text-align: center;
             margin-bottom: 30px;
             z-index: 10;
         }
 
-        .login-logo {
-            width: 200px;
-            height: auto;
-            filter: 
-                drop-shadow(0 2px 4px rgba(0,0,0,0.5))
-                brightness(1.1)
-                contrast(1.2);
-            transition: all 0.3s ease;
+        .logo-text {
+            margin-bottom: 5px;
+            font-size: 1.8rem;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+            letter-spacing: 2px;
+        }
+
+        .logo-subtext {
+            font-size: 1.2rem;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+            letter-spacing: 1px;
         }
 
         .background-animation {
@@ -129,6 +157,10 @@
     <div class="logo-container">
         <img src="logo_2025web.png" alt="Logo G&N CE" class="login-logo">
     </div>
+    <div class="logo-text-container">
+        <div class="logo-text">PDT FUTURA</div>
+        <div class="logo-subtext">Gestión de Proyectos</div>
+    </div>
 
         <div class="login-container">
             <h2>Iniciar Sesión</h2>
@@ -177,6 +209,10 @@
         </div>    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <!-- Servicio de notificaciones -->
+    <script src="notification-service.js"></script>
 
     <script>
         // Your web app's Firebase configuration
@@ -194,6 +230,10 @@
             firebase.initializeApp(firebaseConfig);
         }
         const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Inicializar servicio de notificaciones
+        const notificationService = initializeNotificationService(db);
 
         const loginForm = document.getElementById('login-form');
         const registerForm = document.getElementById('register-form');
@@ -207,6 +247,15 @@
         const registerFormContainer = document.getElementById('register-form-container');
         const showRegisterLink = document.getElementById('show-register');
         const showLoginLink = document.getElementById('show-login');
+
+        // Efecto de reflejo en el logo
+        const logoContainer = document.querySelector('.logo-container');
+        logoContainer.addEventListener('mouseover', () => {
+            logoContainer.classList.add('reflected');
+        });
+        logoContainer.addEventListener('mouseout', () => {
+            logoContainer.classList.remove('reflected');
+        });
 
         // Funciones para alternar entre formularios
         showRegisterLink.addEventListener('click', (e) => {
@@ -275,9 +324,23 @@
             }
 
             auth.createUserWithEmailAndPassword(email, password)
-                .then((userCredential) => {
+                .then(async (userCredential) => {
                     // Usuario creado exitosamente
                     console.log('Usuario registrado:', userCredential.user);
+                    
+                    // Enviar notificación al admin sobre el nuevo registro
+                    try {
+                        await notificationService.notifyNewUser({
+                            email: userCredential.user.email,
+                            displayName: userCredential.user.displayName || userCredential.user.email,
+                            uid: userCredential.user.uid
+                        });
+                        console.log('Notificación de nuevo usuario enviada al admin');
+                    } catch (notificationError) {
+                        console.error('Error al enviar notificación de nuevo usuario:', notificationError);
+                        // No mostrar error al usuario ya que el registro fue exitoso
+                    }
+                    
                     errorMessage.style.color = '#4CAF50';
                     errorMessage.textContent = 'Cuenta creada exitosamente. Redirigiendo...';
                     

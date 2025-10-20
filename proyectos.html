@@ -372,6 +372,9 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
+    <!-- Servicio de notificaciones -->
+    <script src="notification-service.js"></script>
+
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyBX1H8MaD6eoIo0jbpVRKO-fGtND3PthlI",
@@ -388,6 +391,9 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
         let currentUser = null;
+
+        // Inicializar servicio de notificaciones
+        const notificationService = new NotificationService();
 
         auth.onAuthStateChanged(user => {
             if (user) {
@@ -750,8 +756,8 @@ Se recomienda hacer un backup antes de restaurar.
         function loadProjects() {
             const projectList = document.getElementById('project-list');
             
-            // Limpiar la lista actual (mantener solo el proyecto de muestra)
-            projectList.innerHTML = '<li><a href="intro.html?id=default">Proyecto de Muestra (intro.html)</a></li>';
+            // Limpiar la lista actual
+            projectList.innerHTML = '';
             
             console.log('Intentando cargar proyectos desde Firestore...');
             
@@ -1469,6 +1475,17 @@ Se recomienda hacer un backup antes de restaurar.
                                             lastUpdated: firebase.firestore.Timestamp.now()
                                         })
                                         .then(() => {
+                                            // Enviar notificación de usuario agregado al proyecto
+                                            try {
+                                                notificationService.notifyUserAddedToProject(projectData, {
+                                                    email: email,
+                                                    role: role,
+                                                    uid: null // Se actualizará cuando el usuario inicie sesión
+                                                }, currentUser);
+                                                console.log('Notificación de usuario agregado enviada');
+                                            } catch (notificationError) {
+                                                console.error('Error al enviar notificación de usuario agregado:', notificationError);
+                                            }
                                             // Después de agregar al proyecto, necesitamos restaurar la sesión del admin
                                             console.log('Usuario agregado al proyecto, restaurando sesión del admin...');
                                             // Como acabamos de crear el usuario, estamos logueados con él
@@ -1497,6 +1514,19 @@ Se recomienda hacer un backup antes de restaurar.
                                             return db.collection('projects').doc(projectId).update({
                                                 authorizedUsers: authorizedUsers,
                                                 lastUpdated: firebase.firestore.Timestamp.now()
+                                            })
+                                            .then(() => {
+                                                // Enviar notificación de usuario agregado al proyecto
+                                                try {
+                                                    notificationService.notifyUserAddedToProject(projectData, {
+                                                        email: email,
+                                                        role: role,
+                                                        uid: null // Se actualizará cuando el usuario inicie sesión
+                                                    }, currentUser);
+                                                    console.log('Notificación de usuario agregado enviada');
+                                                } catch (notificationError) {
+                                                    console.error('Error al enviar notificación de usuario agregado:', notificationError);
+                                                }
                                             });
                                         } else if (createError.message === 'auth/requires-password') {
                                             // No se proporcionó contraseña para usuario nuevo
