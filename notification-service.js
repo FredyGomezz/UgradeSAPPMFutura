@@ -1,35 +1,20 @@
 // =========== SERVICIO CENTRALIZADO DE NOTIFICACIONES ===========
 // Archivo: notification-service.js
-// Sistema robusto de notificaciones vía SendGrid API REST
+// Sistema de notificaciones vía Backend API REST (simplificado)
 
 class NotificationService {
     constructor(dbInstance = null) {
         this.db = dbInstance;
-        this.backendUrl = 'http://192.168.0.104:3001'; // URL del servidor backend
+        this.backendUrl = 'http://192.168.0.104:3001';
         this.fromEmail = 'gomez.fredy.sap@gmail.com';
         this.fromName = 'Sistema PDT Futura';
 
         // Configuración de timeouts y reintentos
         this.timeout = 10000; // 10 segundos
         this.maxRetries = 3;
-        this.retryDelay = 1000; // 1 segundo
-
-        // Cola de notificaciones
-        this.notificationQueue = [];
-        this.isProcessing = false;
-
-        // Cache para optimizar consultas
-        this.cache = new Map();
-        this.cacheTimeout = 5 * 60 * 1000; // 5 minutos
-
-        console.log('🚀 Servicio de Notificaciones inicializado (con backend)');
+        this.retryDelay = 1000; // 1 segundo para reintentos
     }
 
-    // ========== CONFIGURACIÓN Y UTILIDADES ==========
-
-    /**
-     * Verifica la configuración del backend
-     */
     checkConfiguration() {
         if (!this.backendUrl) {
             console.error('❌ URL del backend no configurada');
@@ -45,33 +30,13 @@ class NotificationService {
         return true;
     }
 
-    /**
-     * Valida formato de email
-     */
     validateEmail(email) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(email);
     }
 
-    /**
-     * Obtiene datos del cache o ejecuta función
-     */
-    async getCached(key, fetchFunction, timeout = this.cacheTimeout) {
-        const cached = this.cache.get(key);
-        if (cached && (Date.now() - cached.timestamp) < timeout) {
-            return cached.data;
-        }
-
-        const data = await fetchFunction();
-        this.cache.set(key, { data, timestamp: Date.now() });
-        return data;
-    }
-
     // ========== ENVÍO DE EMAILS ==========
 
-    /**
-     * Envía notificación al backend
-     */
     async sendEmail(notificationType, data) {
         if (!this.checkConfiguration()) {
             throw new Error('Configuración del backend inválida');
@@ -152,99 +117,27 @@ class NotificationService {
         throw lastError;
     }
 
-    // ========== SISTEMA DE COLAS ==========
-
-    /**
-     * Agrega notificación a la cola
-     */
-    async queueNotification(notificationData) {
-        this.notificationQueue.push({
-            ...notificationData,
-            id: Date.now() + Math.random(),
-            timestamp: new Date(),
-            retries: 0
-        });
-
-        console.log('📋 Notificación agregada a la cola:', notificationData.type);
-
-        // Procesar cola si no está procesando
-        if (!this.isProcessing) {
-            this.processQueue();
-        }
-    }
-
-    /**
-     * Procesa la cola de notificaciones
-     */
-    async processQueue() {
-        if (this.isProcessing || this.notificationQueue.length === 0) {
-            return;
-        }
-
-        this.isProcessing = true;
-        console.log('🔄 Procesando cola de notificaciones...');
-
-        while (this.notificationQueue.length > 0) {
-            const notification = this.notificationQueue.shift();
-
-            try {
-                await this.sendNotification(notification);
-                console.log('✅ Notificación procesada:', notification.type);
-            } catch (error) {
-                console.error('❌ Error procesando notificación:', error);
-
-                // Reintentar si no ha excedido el límite
-                if (notification.retries < this.maxRetries) {
-                    notification.retries++;
-                    this.notificationQueue.unshift(notification);
-                    await new Promise(resolve => setTimeout(resolve, this.retryDelay));
-                } else {
-                    console.error('💀 Notificación abandonada después de', this.maxRetries, 'intentos');
-                }
-            }
-        }
-
-        this.isProcessing = false;
-        console.log('✅ Cola de notificaciones procesada');
-    }
-
-    /**
-     * Envía una notificación específica
-     */
-    async sendNotification(notification) {
-        switch (notification.type) {
-            case 'new_user':
-                return await this.sendNewUserNotification(notification.data);
-            case 'user_added_to_project':
-                return await this.sendUserAddedToProjectNotification(notification.data);
-            case 'task_completed':
-                return await this.sendTaskCompletedNotification(notification.data);
-            default:
-                throw new Error(`Tipo de notificación desconocido: ${notification.type}`);
-        }
-    }
-
     // ========== NOTIFICACIONES ESPECÍFICAS ==========
 
     /**
      * Notificación de nuevo usuario registrado
      */
-    async sendNewUserNotification(userData) {
-        return await this.sendEmail('new_user', userData);
+    sendNewUserNotification(userData) {
+        return this.sendEmail('new_user', { userData });
     }
 
     /**
      * Notificación de usuario agregado a proyecto
      */
-    async sendUserAddedToProjectNotification(data) {
+    sendUserAddedToProjectNotification(data) {
         const { projectData, newUser, addedBy } = data;
-        return await this.sendEmail('user_added_to_project', { projectData, newUser, addedBy });
+        return this.sendEmail('user_added_to_project', { projectData, newUser, addedBy });
     }
 
     /**
      * Notificación de tarea completada con reporte detallado
      */
-    async sendTaskCompletedNotification(data) {
+    sendTaskCompletedNotification(data) {
         const { projectData, completedTask, completerUser } = data;
 
         // Enriquecer la tarea con información adicional del proyecto
@@ -287,7 +180,7 @@ class NotificationService {
             completerData: completerUser
         };
 
-        return await this.sendEmail('task_completed', emailData);
+        return this.sendEmail('task_completed', emailData);
     }
 
     /**
@@ -524,49 +417,32 @@ class NotificationService {
     /**
      * Notifica creación de nuevo usuario
      */
-    async notifyNewUser(userData) {
-        await this.queueNotification({
-            type: 'new_user',
-            data: userData
-        });
+    notifyNewUser(userData) {
+        this.sendNewUserNotification(userData).catch(err => console.error("Error en segundo plano al notificar nuevo usuario:", err));
     }
 
     /**
      * Notifica adición de usuario a proyecto
      */
-    async notifyUserAddedToProject(projectData, newUser, addedBy) {
-        await this.queueNotification({
-            type: 'user_added_to_project',
-            data: { projectData, newUser, addedBy }
-        });
+    notifyUserAddedToProject(projectData, newUser, addedBy) {
+        this.sendUserAddedToProjectNotification({ projectData, newUser, addedBy }).catch(err => console.error("Error en segundo plano al notificar usuario agregado:", err));
     }
 
     /**
      * Notifica tarea completada
      */
-    async notifyTaskCompleted(projectData, completedTask, completerUser) {
-        await this.queueNotification({
-            type: 'task_completed',
-            data: { projectData, completedTask, completerUser }
-        });
-    }
-
-    /**
-     * Limpia el cache
-     */
-    clearCache() {
-        this.cache.clear();
-        console.log('🧹 Cache limpiado');
+    notifyTaskCompleted(projectData, completedTask, completerUser) {
+        this.sendTaskCompletedNotification({ projectData, completedTask, completerUser }).catch(err => console.error("Error en segundo plano al notificar tarea completada:", err));
     }
 
     /**
      * Obtiene estadísticas del servicio
      */
+
     getStats() {
         return {
             queueLength: this.notificationQueue.length,
-            isProcessing: this.isProcessing,
-            cacheSize: this.cache.size
+            isProcessing: this.isProcessing
         };
     }
 }
