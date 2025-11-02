@@ -8,14 +8,21 @@ service cloud.firestore {
 
     // Reglas para proyectos - permitir acceso a usuarios autenticados
     match /projects/{projectId} {
+      // Helper function to check if the user is an admin for this project.
+      function isProjectAdmin() {
+        let user = resource.data.authorizedUsers.filter(u => u.uid == request.auth.uid)[0];
+        return user.role == 'admin' || user.role == 'administrador';
+      }
+
       // Solo los usuarios en la lista de 'authorizedUsers' pueden leer.
-      allow read: if request.auth != null && request.auth.uid in resource.data.authorizedUsers;
+      allow read: if request.auth != null && request.auth.uid in resource.data.authorizedUsers.map(u => u.uid);
 
       // Solo los usuarios con rol 'admin' o 'administrador' en la lista pueden escribir.
-      // Asumiendo que authorizedUsers es una lista de objetos: [{uid: '...', role: '...'}]
-      allow write: if request.auth != null && request.auth.uid in resource.data.authorizedUsers.map(u => u.uid) &&
-                      (resource.data.authorizedUsers.filter(u => u.uid == request.auth.uid)[0].role == 'admin' ||
-                       resource.data.authorizedUsers.filter(u => u.uid == request.auth.uid)[0].role == 'administrador');
+      allow update: if request.auth != null && request.auth.uid in resource.data.authorizedUsers.map(u => u.uid) && isProjectAdmin();
+
+      // Solo los administradores del proyecto pueden crear y eliminar.
+      // El admin global (hardcodeado) también tiene permiso.
+      allow create, delete: if request.auth != null && (request.auth.token.email == 'admin@gnce.com' || (request.auth.uid in resource.data.authorizedUsers.map(u => u.uid) && isProjectAdmin()));
     }
   }
 }

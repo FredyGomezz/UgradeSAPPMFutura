@@ -135,20 +135,11 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <!-- Configuración centralizada de Firebase -->
+    <script src="config/firebase.js"></script>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyBX1H8MaD6eoIo0jbpVRKO-fGtND3PthlI",
-            authDomain: "pdt-futura.firebaseapp.com",
-            projectId: "pdt-futura",
-            storageBucket: "pdt-futura.firebasestorage.app",
-            messagingSenderId: "807986666483",
-            appId: "1:807986666483:web:d1f1ecabe7076c2f2bd086"
-        };
-
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
         const auth = firebase.auth();
         const db = firebase.firestore();
 
