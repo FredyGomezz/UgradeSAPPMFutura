@@ -137,7 +137,7 @@ class NotificationService {
     /**
      * Notificación de tarea completada con reporte detallado
      */
-    sendTaskCompletedNotification(data) {
+    async sendTaskCompletedNotification(data) {
         const { projectData, completedTask, completerUser } = data;
 
         // Enriquecer la tarea con información adicional del proyecto

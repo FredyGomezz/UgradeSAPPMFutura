@@ -372,28 +372,18 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
+    <!-- Configuración centralizada de Firebase -->
+    <script src="config/firebase.js"></script>
     <!-- Servicio de notificaciones -->
     <script src="notification-service.js"></script>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyBX1H8MaD6eoIo0jbpVRKO-fGtND3PthlI",
-            authDomain: "pdt-futura.firebaseapp.com",
-            projectId: "pdt-futura",
-            storageBucket: "pdt-futura.appspot.com",
-            messagingSenderId: "807986666483",
-            appId: "1:807986666483:web:4213a33d83132845c87931"
-        };
-
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
         const auth = firebase.auth();
         const db = firebase.firestore();
         let currentUser = null;
 
         // Inicializar servicio de notificaciones
-        const notificationService = new NotificationService();
+        const notificationService = initializeNotificationService(db);
 
         auth.onAuthStateChanged(user => {
             if (user) {
