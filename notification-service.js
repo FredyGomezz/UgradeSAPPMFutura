@@ -5,7 +5,7 @@
 class NotificationService {
     constructor(dbInstance = null) {
         this.db = dbInstance;
-        this.backendUrl = 'http://192.168.0.104:3001';
+        this.backendUrl = 'http://localhost:3001';
         this.fromEmail = 'gomez.fredy.sap@gmail.com';
         this.fromName = 'Sistema PDT Futura';
 
@@ -171,7 +171,7 @@ class NotificationService {
 
         const emailData = {
             to: recipients,
-            subject: `✅ Tarea Completada: ${enrichedTask.name} - ${projectData.name}`,
+            subject: `✅ Tarea Completada: ${enrichedTask.name} - ${projectData.projectName}`,
             html: this.generateTaskCompletedTemplate(projectData, enrichedTask, completerUser, projectReport),
             projectId: projectData.id,
             taskId: enrichedTask.id || enrichedTask.name, // Usar nombre si no hay ID
@@ -412,6 +412,94 @@ class NotificationService {
         return tasks;
     }
 
+    // ========== PLANTILLAS DE EMAIL ==========
+
+    /**
+     * Genera el HTML para la notificación de tarea completada
+     */
+    generateTaskCompletedTemplate(projectData, taskData, userData, reportData) {
+        const { metrics, performance } = reportData;
+
+        // Formatear fechas
+        let completionDate = 'No especificada';
+        if (taskData.completionDate) {
+            const completionDateObj = new Date(taskData.completionDate.toDate ? taskData.completionDate.toDate() : taskData.completionDate);
+            const datePart = completionDateObj.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const timePart = completionDateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            completionDate = `${datePart} a las ${timePart}`;
+        }
+        const projectStartDate = metrics.startDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
+        const projectEndDate = metrics.endDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
+
+        // Estilos en línea para máxima compatibilidad
+        const styles = {
+            body: `font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f4f7; margin: 0; padding: 20px;`,
+            container: `max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #e0e0e0;`,
+            header: `background-color: #003366; color: #ffffff; padding: 20px; text-align: center;`,
+            headerTitle: `margin: 0; font-size: 24px;`,
+            content: `padding: 25px 30px;`,
+            sectionTitle: `font-size: 18px; color: #003366; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 20px; margin-bottom: 15px;`,
+            paragraph: `font-size: 16px; color: #333333; line-height: 1.6;`,
+            highlight: `font-weight: bold; color: #0056b3;`,
+            table: `width: 100%; border-collapse: collapse; margin-top: 15px;`,
+            th: `text-align: left; padding: 8px; background-color: #f2f2f2; border-bottom: 1px solid #dddddd; font-size: 14px; color: #555;`,
+            td: `text-align: left; padding: 8px; border-bottom: 1px solid #dddddd; font-size: 14px;`,
+            progressBarContainer: `background-color: #e0e0e0; border-radius: 5px; height: 20px; width: 100%; overflow: hidden; margin-top: 5px;`,
+            progressBar: `background-color: #4CAF50; height: 100%; text-align: center; color: white; font-weight: bold; line-height: 20px;`,
+            button: `display: inline-block; background-color: #007bff; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-size: 16px; margin-top: 20px;`,
+            footer: `text-align: center; padding: 20px; font-size: 12px; color: #888888;`
+        };
+
+        return `
+            <div style="${styles.body}">
+                <div style="${styles.container}">
+                    <div style="${styles.header}">
+                        <h1 style="${styles.headerTitle}">Proyecto: ${projectData.projectName}</h1>
+                    </div>
+                    <div style="${styles.content}">
+                        <h2 style="${styles.sectionTitle}">Tarea Completada</h2>
+                        <p style="${styles.paragraph}">
+                            Se ha marcado como completada la tarea <span style="${styles.highlight}">${taskData.name}</span>.
+                        </p>
+                        <table style="${styles.table}">
+                            <tr><th style="${styles.th}">Detalle</th><th style="${styles.th}">Información</th></tr>
+                            <tr><td style="${styles.td}">Completada por:</td><td style="${styles.td}">${userData.displayName || userData.email}</td></tr>
+                            <tr><td style="${styles.td}">Fecha de finalización:</td><td style="${styles.td}">${completionDate}</td></tr>
+                            <tr><td style="${styles.td}">Fase:</td><td style="${styles.td}">${taskData.phaseName || 'No especificada'}</td></tr>
+                            <tr><td style="${styles.td}">Horas estimadas:</td><td style="${styles.td}">${taskData.durationHours || 'N/A'}</td></tr>
+                        </table>
+
+                        <h2 style="${styles.sectionTitle}">Resumen del Proyecto</h2>
+                        <table style="${styles.table}">
+                            <tr><td style="${styles.td}">Progreso de Tareas:</td><td style="${styles.td}">
+                                <div style="${styles.progressBarContainer}">
+                                    <div style="${styles.progressBar} width: ${metrics.taskProgress}%;">${metrics.taskProgress}%</div>
+                                </div>
+                                (${metrics.completedTasks} de ${metrics.totalTasks} tareas)
+                            </td></tr>
+                            <tr><td style="${styles.td}">Progreso por Horas:</td><td style="${styles.td}">
+                                <div style="${styles.progressBarContainer}">
+                                    <div style="${styles.progressBar} width: ${metrics.hourProgress}%;">${metrics.hourProgress}%</div>
+                                </div>
+                                (${metrics.completedHours} de ${metrics.totalHours} horas)
+                            </td></tr>
+                            <tr><td style="${styles.td}">Estado General:</td><td style="${styles.td}">${performance.projectStatus}</td></tr>
+                            <tr><td style="${styles.td}">Duración:</td><td style="${styles.td}">${projectStartDate} - ${projectEndDate} (${metrics.durationDays} días)</td></tr>
+                        </table>
+
+                        <div style="text-align: center;">
+                            <a href="${window.location.origin}/vistaProyecto.html?id=${projectData.id}" style="${styles.button}">Ver Proyecto</a>
+                        </div>
+                    </div>
+                    <div style="${styles.footer}">
+                        Este es un correo generado automáticamente por el Sistema de Gestión de Proyectos PDT Futura.
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+
     // ========== MÉTODOS PÚBLICOS ==========
 
     /**
@@ -432,367 +520,14 @@ class NotificationService {
      * Notifica tarea completada
      */
     notifyTaskCompleted(projectData, completedTask, completerUser) {
-        this.sendTaskCompletedNotification({ projectData, completedTask, completerUser }).catch(err => console.error("Error en segundo plano al notificar tarea completada:", err));
-    }
-
-    /**
-     * Obtiene estadísticas del servicio
-     */
-
-    getStats() {
-        return {
-            queueLength: this.notificationQueue.length,
-            isProcessing: this.isProcessing
+        // Enriquecer la tarea con la fecha de completado en el momento de la llamada
+        const taskWithCompletionDate = {
+            ...completedTask,
+            completionDate: new Date()
         };
+        this.sendTaskCompletedNotification({ projectData, completedTask: taskWithCompletionDate, completerUser }).catch(err => console.error("Error en segundo plano al notificar tarea completada:", err));
     }
 }
-
-// ========== TEMPLATES HTML ==========
-
-NotificationService.prototype.generateNewUserTemplate = function(userData) {
-    const registrationDate = new Date().toLocaleString('es-ES');
-
-    return `
-        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f8f9fa; border-radius: 10px;">
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-                <h1 style="margin: 0; font-size: 24px;">🆕 Nuevo Usuario Registrado</h1>
-                <p style="margin: 10px 0 0 0; opacity: 0.9;">Sistema PDT Futura</p>
-            </div>
-
-            <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                <h2 style="color: #495057; margin-bottom: 20px;">Datos del Nuevo Usuario</h2>
-
-                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-                    <tr>
-                        <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; font-weight: bold; width: 150px;">Nombre:</td>
-                        <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;">${userData.displayName || 'No especificado'}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; font-weight: bold;">Email:</td>
-                        <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;">${userData.email}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; font-weight: bold;">Contraseña:</td>
-                        <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; color: #dc3545; font-weight: bold;">${userData.password || 'No disponible'}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; font-weight: bold;">Fecha de Registro:</td>
-                        <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;">${registrationDate}</td>
-                    </tr>
-                </table>
-
-                <div style="background: #e7f3ff; border: 1px solid #b3d7ff; border-radius: 5px; padding: 15px; margin-top: 20px;">
-                    <p style="margin: 0; color: #004085; font-weight: bold;">💡 Acción requerida:</p>
-                    <p style="margin: 5px 0 0 0; color: #004085;">Verificar la información del usuario y confirmar su acceso al sistema.</p>
-                </div>
-            </div>
-        </div>
-    `;
-};
-
-NotificationService.prototype.generateUserAddedTemplate = function(projectData, newUser, addedBy) {
-    const additionDate = new Date().toLocaleString('es-ES');
-
-    return `
-        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f8f9fa; border-radius: 10px;">
-            <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-                <h1 style="margin: 0; font-size: 24px;">👥 Nuevo Usuario en Proyecto</h1>
-                <p style="margin: 10px 0 0 0; opacity: 0.9;">Sistema PDT Futura</p>
-            </div>
-
-            <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                <h2 style="color: #495057; margin-bottom: 20px;">Usuario Agregado al Proyecto</h2>
-
-                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                    <h3 style="color: #495057; margin-bottom: 15px;">📋 Información del Proyecto</h3>
-                    <p style="margin: 5px 0;"><strong>Proyecto:</strong> ${projectData.name || 'Sin nombre'}</p>
-                    <p style="margin: 5px 0;"><strong>Fecha de Incorporación:</strong> ${additionDate}</p>
-                </div>
-
-                <div style="background: #e7f3ff; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                    <h3 style="color: #004085; margin-bottom: 15px;">👤 Nuevo Usuario Autorizado</h3>
-                    <p style="margin: 5px 0;"><strong>Nombre:</strong> ${newUser.displayName || newUser.name || 'No especificado'}</p>
-                    <p style="margin: 5px 0;"><strong>Email:</strong> ${newUser.email}</p>
-                    <p style="margin: 5px 0;"><strong>Rol:</strong> ${newUser.role || 'Usuario'}</p>
-                </div>
-
-                <div style="background: #fff3cd; padding: 20px; border-radius: 8px;">
-                    <h3 style="color: #856404; margin-bottom: 15px;">👨‍💼 Agregado por</h3>
-                    <p style="margin: 5px 0;"><strong>Nombre:</strong> ${addedBy.displayName || addedBy.name || 'Sistema'}</p>
-                    <p style="margin: 5px 0;"><strong>Email:</strong> ${addedBy.email}</p>
-                </div>
-            </div>
-        </div>
-    `;
-};
-
-NotificationService.prototype.generateTaskCompletedTemplate = function(projectData, completedTask, completerUser, projectReport) {
-    const completionDate = new Date().toLocaleString('es-ES');
-    const { metrics, performance, phasesSummary, tasksDetail } = projectReport;
-
-    return `
-        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f8f9fa; border-radius: 10px;">
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-                <h1 style="margin: 0; font-size: 28px;">📊 Resumen del Proyecto</h1>
-                <h2 style="margin: 10px 0; font-size: 20px; opacity: 0.9;">${projectData.name || 'Proyecto sin nombre'}</h2>
-                <p style="margin: 5px 0 0 0; opacity: 0.8;">Sistema PDT Futura - Gestión de Proyectos</p>
-                <p style="margin: 10px 0 0 0; font-size: 14px;">Reporte generado: ${completionDate}</p>
-            </div>
-
-            <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-
-                <!-- TAREA COMPLETADA -->
-                <div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
-                    <h2 style="color: #155724; margin-bottom: 15px;">✅ Tarea Completada</h2>
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <tr>
-                            <td style="padding: 8px 0; font-weight: bold; width: 150px;">Tarea:</td>
-                            <td style="padding: 8px 0;">${completedTask.name}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 8px 0; font-weight: bold;">Fase:</td>
-                            <td style="padding: 8px 0;">${completedTask.phaseName || 'Sin fase'}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 8px 0; font-weight: bold;">Horas:</td>
-                            <td style="padding: 8px 0;">${completedTask.durationHours || completedTask.hours || 0} horas</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 8px 0; font-weight: bold;">Completada por:</td>
-                            <td style="padding: 8px 0;">${completerUser.displayName || completerUser.email}</td>
-                        </tr>
-                    </table>
-                </div>
-
-                <!-- INFORMACIÓN DEL PROYECTO -->
-                <div style="margin-bottom: 30px;">
-                    <h2 style="color: #495057; border-bottom: 2px solid #007bff; padding-bottom: 10px;">📋 Información del Proyecto</h2>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px;">
-                            <strong>Fecha de Inicio:</strong><br>${metrics.startDate.toLocaleDateString('es-ES')}
-                        </div>
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px;">
-                            <strong>Fecha de Fin Estimada:</strong><br>${metrics.endDate.toLocaleDateString('es-ES')}
-                        </div>
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px;">
-                            <strong>Duración Total:</strong><br>${metrics.durationDays} días (${metrics.durationWeeks} semanas)
-                        </div>
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px;">
-                            <strong>Última Actualización:</strong><br>${metrics.lastUpdate.toLocaleString('es-ES')}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- MÉTRICAS PRINCIPALES -->
-                <div style="margin-bottom: 30px;">
-                    <h2 style="color: #495057; border-bottom: 2px solid #28a745; padding-bottom: 10px;">📈 Métricas Principales</h2>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 15px;">
-                        <div style="background: #e7f3ff; padding: 15px; border-radius: 5px; text-align: center;">
-                            <div style="font-size: 24px; font-weight: bold; color: #007bff;">${metrics.totalTasks}</div>
-                            <div style="font-size: 12px; color: #004085;">Total de Tareas</div>
-                        </div>
-                        <div style="background: #d4edda; padding: 15px; border-radius: 5px; text-align: center;">
-                            <div style="font-size: 24px; font-weight: bold; color: #28a745;">${metrics.completedTasks}</div>
-                            <div style="font-size: 12px; color: #155724;">Tareas Completadas</div>
-                        </div>
-                        <div style="background: #fff3cd; padding: 15px; border-radius: 5px; text-align: center;">
-                            <div style="font-size: 24px; font-weight: bold; color: #856404;">${metrics.taskProgress}%</div>
-                            <div style="font-size: 12px; color: #856404;">Progreso de Tareas</div>
-                        </div>
-                        <div style="background: #e7f3ff; padding: 15px; border-radius: 5px; text-align: center;">
-                            <div style="font-size: 24px; font-weight: bold; color: #007bff;">${metrics.totalHours}h</div>
-                            <div style="font-size: 12px; color: #004085;">Total de Horas</div>
-                        </div>
-                        <div style="background: #d4edda; padding: 15px; border-radius: 5px; text-align: center;">
-                            <div style="font-size: 24px; font-weight: bold; color: #28a745;">${metrics.completedHours}h</div>
-                            <div style="font-size: 12px; color: #155724;">Horas Completadas</div>
-                        </div>
-                        <div style="background: #fff3cd; padding: 15px; border-radius: 5px; text-align: center;">
-                            <div style="font-size: 24px; font-weight: bold; color: #856404;">${metrics.hourProgress}%</div>
-                            <div style="font-size: 12px; color: #856404;">Progreso de Horas</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ANÁLISIS DE RENDIMIENTO -->
-                <div style="margin-bottom: 30px;">
-                    <h2 style="color: #495057; border-bottom: 2px solid #6f42c1; padding-bottom: 10px;">🎯 Análisis de Rendimiento</h2>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
-                        <div style="background: ${performance.scheduleVariance >= 0 ? '#d4edda' : '#f8d7da'}; padding: 15px; border-radius: 5px;">
-                            <strong>Variación del Cronograma:</strong><br>
-                            <span style="font-size: 18px; font-weight: bold;">${performance.scheduleVariance}%</span>
-                        </div>
-                        <div style="background: ${performance.performanceIndex >= 1 ? '#d4edda' : '#f8d7da'}; padding: 15px; border-radius: 5px;">
-                            <strong>Índice de Rendimiento (SPI):</strong><br>
-                            <span style="font-size: 18px; font-weight: bold;">${performance.performanceIndex}</span>
-                        </div>
-                        <div style="background: #e7f3ff; padding: 15px; border-radius: 5px;">
-                            <strong>Estado del Proyecto:</strong><br>
-                            <span style="font-size: 18px; font-weight: bold; color: #007bff;">${performance.projectStatus}</span>
-                        </div>
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px;">
-                            <strong>Semana Actual:</strong><br>
-                            <span style="font-size: 18px; font-weight: bold;">${performance.currentWeek}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- RESUMEN POR FASES -->
-                <div style="margin-bottom: 30px;">
-                    <h2 style="color: #495057; border-bottom: 2px solid #fd7e14; padding-bottom: 10px;">📊 Resumen por Fases</h2>
-                    <div style="overflow-x: auto; margin-top: 15px;">
-                        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-                            <thead>
-                                <tr style="background: #f8f9fa;">
-                                    <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">#</th>
-                                    <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">Nombre de la Fase</th>
-                                    <th style="padding: 10px; border: 1px solid #dee2e6; text-align: center;">Tareas</th>
-                                    <th style="padding: 10px; border: 1px solid #dee2e6; text-align: center;">Horas</th>
-                                    <th style="padding: 10px; border: 1px solid #dee2e6; text-align: center;">Progreso</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${phasesSummary.map(phase => `
-                                    <tr>
-                                        <td style="padding: 10px; border: 1px solid #dee2e6;">${phase.number}</td>
-                                        <td style="padding: 10px; border: 1px solid #dee2e6;">${phase.name}</td>
-                                        <td style="padding: 10px; border: 1px solid #dee2e6; text-align: center;">${phase.tasks}</td>
-                                        <td style="padding: 10px; border: 1px solid #dee2e6; text-align: center;">${phase.hours}h</td>
-                                        <td style="padding: 10px; border: 1px solid #dee2e6; text-align: center;">
-                                            <div style="background: ${phase.progress === 100 ? '#d4edda' : phase.progress > 50 ? '#fff3cd' : '#f8d7da'}; padding: 4px 8px; border-radius: 3px; display: inline-block;">
-                                                ${phase.progress}%
-                                            </div>
-                                        </td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- DIAGRAMA DE GANTT -->
-                <div style="margin-bottom: 30px;">
-                    <h2 style="color: #495057; border-bottom: 2px solid #17a2b8; padding-bottom: 10px;">📅 Diagrama de Gantt</h2>
-                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 15px;">
-                        <div style="font-family: monospace; font-size: 12px; line-height: 1.4;">
-                            <div style="margin-bottom: 10px;"><strong>Línea de tiempo del proyecto:</strong></div>
-                            ${generateGanttChart(projectData)}
-                        </div>
-                    </div>
-                </div>
-                    <div style="overflow-x: auto; margin-top: 15px;">
-                        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-                            <thead>
-                                <tr style="background: #f8f9fa;">
-                                    <th style="padding: 8px; border: 1px solid #dee2e6; text-align: left;">#</th>
-                                    <th style="padding: 8px; border: 1px solid #dee2e6; text-align: left;">Nombre de la Tarea</th>
-                                    <th style="padding: 8px; border: 1px solid #dee2e6; text-align: center;">Tipo</th>
-                                    <th style="padding: 8px; border: 1px solid #dee2e6; text-align: center;">Horas</th>
-                                    <th style="padding: 8px; border: 1px solid #dee2e6; text-align: center;">Inicio</th>
-                                    <th style="padding: 8px; border: 1px solid #dee2e6; text-align: center;">Fin</th>
-                                    <th style="padding: 8px; border: 1px solid #dee2e6; text-align: center;">Estado</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${tasksDetail.map(task => `
-                                    <tr style="background: ${task.status === 'Completada' ? '#f8fff8' : 'white'};">
-                                        <td style="padding: 8px; border: 1px solid #dee2e6;">${task.number}</td>
-                                        <td style="padding: 8px; border: 1px solid #dee2e6;">${task.name}</td>
-                                        <td style="padding: 8px; border: 1px solid #dee2e6; text-align: center;">
-                                            <span style="background: ${task.type === 'Hito' ? '#e74c3c' : '#3498db'}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 12px;">
-                                                ${task.type}
-                                            </span>
-                                        </td>
-                                        <td style="padding: 8px; border: 1px solid #dee2e6; text-align: center;">${task.hours}h</td>
-                                        <td style="padding: 8px; border: 1px solid #dee2e6; text-align: center;">
-                                            ${task.startDate ? task.startDate.toLocaleDateString('es-ES') : '--'}
-                                        </td>
-                                        <td style="padding: 8px; border: 1px solid #dee2e6; text-align: center;">
-                                            ${task.endDate ? task.endDate.toLocaleDateString('es-ES') : '--'}
-                                        </td>
-                                        <td style="padding: 8px; border: 1px solid #dee2e6; text-align: center;">
-                                            <span style="background: ${task.status === 'Completada' ? '#28a745' : '#ffc107'}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 12px;">
-                                                ${task.status}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- PIE DE PÁGINA -->
-                <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6;">
-                    <p style="color: #6c757d; font-size: 14px;">
-                        Este es un reporte automático generado por el Sistema PDT Futura<br>
-                        Para más detalles, accede a la plataforma del proyecto.
-                    </p>
-                </div>
-            </div>
-        </div>
-    `;
-};
-
-// ========== FUNCIONES AUXILIARES ==========
-
-function generateGanttChart(projectData) {
-    if (!projectData.phases || !Array.isArray(projectData.phases)) {
-        return '<div>No hay datos de fases disponibles</div>';
-    }
-
-    const projectStart = projectData.startDate ? new Date(projectData.startDate.toDate ? projectData.startDate.toDate() : projectData.startDate) : new Date();
-    const projectEnd = projectData.phases.reduce((end, phase) => {
-        if (phase.tasks && phase.tasks.length > 0) {
-            const lastTask = phase.tasks[phase.tasks.length - 1];
-            const taskEnd = lastTask.endDate ? new Date(lastTask.endDate.toDate ? lastTask.endDate.toDate() : lastTask.endDate) : end;
-            return taskEnd > end ? taskEnd : end;
-        }
-        return end;
-    }, projectStart);
-
-    const totalDays = Math.ceil((projectEnd - projectStart) / (1000 * 60 * 60 * 24));
-    const chartWidth = Math.min(60, Math.max(30, totalDays)); // Ancho adaptable del gráfico
-
-    let ganttHtml = '<div style="font-family: monospace; font-size: 11px;">';
-
-    projectData.phases.forEach((phase, phaseIndex) => {
-        if (!phase.tasks || !Array.isArray(phase.tasks)) return;
-
-        ganttHtml += `<div style="margin-bottom: 8px;"><strong>${phase.name || `Fase ${phaseIndex + 1}`}</strong></div>`;
-
-        phase.tasks.forEach((task, taskIndex) => {
-            const taskStart = task.startDate ? new Date(task.startDate.toDate ? task.startDate.toDate() : task.startDate) : projectStart;
-            const taskEnd = task.endDate ? new Date(task.endDate.toDate ? task.endDate.toDate() : task.endDate) : taskStart;
-
-            const startOffset = Math.max(0, Math.floor((taskStart - projectStart) / (1000 * 60 * 60 * 24)));
-            const duration = Math.max(1, Math.ceil((taskEnd - taskStart) / (1000 * 60 * 60 * 24)) + 1);
-
-            const barStart = Math.floor((startOffset / totalDays) * chartWidth);
-            const barWidth = Math.max(1, Math.floor((duration / totalDays) * chartWidth));
-
-            let bar = '';
-            for (let i = 0; i < chartWidth; i++) {
-                if (i >= barStart && i < barStart + barWidth) {
-                    bar += task.completed ? '█' : '░';
-                } else {
-                    bar += '─';
-                }
-            }
-
-            const status = task.completed ? '✅' : '⏳';
-            const taskName = `${status} ${task.name || `Tarea ${taskIndex + 1}`}`.substring(0, 20);
-
-            ganttHtml += `<div style="margin-left: 10px; margin-bottom: 2px;">${taskName.padEnd(22)} ${bar}</div>`;
-        });
-
-        ganttHtml += '<div style="margin-bottom: 10px;"></div>';
-    });
-
-    ganttHtml += '</div>';
-    return ganttHtml;
-}
-
 // ========== INSTANCIA GLOBAL ===========
 
 // La instancia global se creará cuando se importe el script

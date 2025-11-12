@@ -1,7 +1,7 @@
 // Las instancias de 'firebase', 'auth' y 'db' ahora se asumen
-// que están disponibles globalmente gracias a config/firebase.js
+// que están disponibles globalmente gracias a firebase-init.js
 
-const db = firebase.firestore();
+// const db = firebase.firestore(); // Eliminado para evitar redeclaración
 
 // Inicializar servicio de notificaciones
 const notificationService = initializeNotificationService(db);
@@ -46,7 +46,7 @@ async function loadProjectConfig(data) {
             startDateInput.valueAsDate = startDate;
             startDateInput.disabled = !isAdmin; // Solo admin puede modificar
         }
-        if (projectStartDate) projectStartDate.textContent = formatDateForDisplay(startDate);
+        if (projectStartDate) projectStartDate.textContent = safeDateFormatForDisplay(startDate);
     }
 
     // Cargar configuración de días laborables
@@ -164,9 +164,8 @@ if (!holidays || !Array.isArray(holidays)) {
     return;
 }
 console.log('Cargando festivos:', holidays);
-holidays.forEach((holiday, index) => {
-    let dateValue = safeDateValueForInput(holiday.date);
-    const holidayName = holiday.name || '';
+    holidays.forEach((holiday, index) => {
+        let dateValue = formatDateForInput(holiday.date);    const holidayName = holiday.name || '';
     const holidayItem = document.createElement('div');
     holidayItem.className = 'holiday-item';
 

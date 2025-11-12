@@ -373,13 +373,12 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <!-- Configuración centralizada de Firebase -->
-    <script src="config/firebase.js"></script>
+    <script src="firebase-init.js"></script>
     <!-- Servicio de notificaciones -->
-    <script src="/UgradeSAPPMFutura/notification-service.js"></script>
+    <script src="notification-service.js"></script>
 
     <script>
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+
         let currentUser = null;
 
         // Inicializar servicio de notificaciones

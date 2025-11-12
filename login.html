@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - PDT Futura</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <!-- Firebase init -->
+    <script src="firebase-init.js"></script>
+
     <style>
         * {
             margin: 0;
@@ -206,19 +215,13 @@
             </div>
             
             <p id="error-message"></p>
-        </div>    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+        </div>
 
-    <!-- Configuración centralizada de Firebase y servicios -->
-    <script src="config/firebase.js"></script>
     <!-- Servicio de notificaciones -->
-    <script src="/UgradeSAPPMFutura/notification-service.js"></script>
+    <script src="notification-service.js"></script>
 
     <script>
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+
 
         // Inicializar servicio de notificaciones
         const notificationService = initializeNotificationService(db);
