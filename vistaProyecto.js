@@ -165,7 +165,7 @@ if (!holidays || !Array.isArray(holidays)) {
 }
 console.log('Cargando festivos:', holidays);
     holidays.forEach((holiday, index) => {
-        let dateValue = formatDateForInput(holiday.date);    const holidayName = holiday.name || '';
+        let dateValue = formatDateForInput(parseHolidayDate(holiday.date));    const holidayName = holiday.name || '';
     const holidayItem = document.createElement('div');
     holidayItem.className = 'holiday-item';
 
@@ -485,8 +485,9 @@ function renderCalendar(data) {
             calendarHtml += `<div class="calendar-day${dayClass}" data-date="${dateStr}">
                 <span class="day-number">${day}</span>
                 ${holiday ? `<div class="holiday-name">${holiday.name}</div>` : ''}
-                ${dayTasks.map(t => `
-                    <span class="task-indicator" 
+                ${dayTasks.map(t => {
+                    const completedClass = t.completed ? ' completed' : '';
+                    return `<span class="task-indicator${completedClass}" 
                         data-task-number="${t.globalTaskNumber}" 
                         data-phase-name="${t.phaseName}" 
                         data-task-name="${t.name || 'Tarea'}" 
@@ -494,7 +495,8 @@ function renderCalendar(data) {
                         data-start="${safeDateFormatForDisplay(t.startDate)} ${t.startTime || '--:--'}" 
                         data-end="${safeDateFormatForDisplay(t.endDate)} ${t.endTime || '--:--'}"
                         title="Tarea ${t.globalTaskNumber}: ${t.name || 'Tarea'} (${t.durationHours || 0}h)"
-                    >${t.globalTaskNumber}</span>`).join('')}
+                    >${t.globalTaskNumber}</span>`;
+                }).join('')}
             </div>`;
         }
 

@@ -364,8 +364,25 @@ body {
 }
 
 .task.completed {
-    background: #d4edda;
-    border-left-color: #28a745;
+    background: #d4edda; /* Homogenizado con calendario */
+    border-left-color: #28a745; /* Borde verde oscuro */
+    color: #155724; /* Texto oscuro para legibilidad */
+}
+
+.task.completed .task-name,
+.task.completed .time-label,
+.task.completed .time-value {
+    color: #155724; /* Texto oscuro para legibilidad */
+}
+
+.task.completed .task-completed-info {
+    color: #155724; /* Texto oscuro para legibilidad */
+    opacity: 0.9;
+}
+
+.task.completed .task-hours {
+    background: #28a745; /* Verde oscuro para contraste */
+    color: white; /* Texto blanco */
 }
 
 .task.milestone {
@@ -644,6 +661,10 @@ body {
     border-radius: 2px;
     margin: 1px 0;
     font-weight: bold;
+}
+
+.task-indicator.completed {
+    background: #28a745;
 }
 
 .milestone-indicator {
