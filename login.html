@@ -22,8 +22,7 @@
         }
 
         body {
-            font-family: 'Arial', sans-serif;
-            overflow: hidden;
+            font-family: 'Roboto',sans-serif;
             background: radial-gradient(ellipse at center, #0f0f23 0%, #000000 100%);
             min-height: 100vh;
             display: flex;
@@ -31,6 +30,8 @@
             align-items: center;
             justify-content: center;
             color: white;
+            overflow-y: auto; /* Permitir scroll vertical si el contenido es muy alto */
+            padding: 20px 10px; /* Añadir padding para evitar que el contenido toque los bordes */
         }
 
         .logo-container {
@@ -168,7 +169,7 @@
     </div>
     <div class="logo-text-container">
         <div class="logo-text">PDT FUTURA</div>
-        <div class="logo-subtext">Gestión de Proyectos</div>
+        <div class="logo-subtext">Gestión de Proyectos Empresariales</div>
     </div>
 
         <div class="login-container">

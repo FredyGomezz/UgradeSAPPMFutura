@@ -204,6 +204,7 @@
             </div>
 
             <div style="text-align: center; margin: 20px 0;" id="project-actions">
+                <button id="download-pdf-btn">Descargar PDF</button>
                 <button id="back-to-projects-btn">Volver a Proyectos</button>
                 <button id="logout-btn">Cerrar Sesión</button>
             </div>
@@ -216,6 +217,13 @@
 
     <!-- Chart.js para gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Librerías para Generación de PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <!-- Lógica de generación de PDF refactorizada -->
+    <script src="pdf-generator.js"></script>
 
     <!-- Configuración centralizada de Firebase -->
     <script src="firebase-init.js"></script>

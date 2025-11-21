@@ -15,22 +15,25 @@
             min-height: 100vh;
         }
         
+
         /* Marca de agua del logo */
-        body::before {
-            content: '';
+        .background-logo-container {
             position: fixed;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%) rotate(-15deg);
-            background-image: url('logo_2025web.png');
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            width: 400px;
-            height: 200px;
-            opacity: 0.1;
-            pointer-events: none;
+            transform: translate(-50%, -50%);
+            width: 50%;
+            max-width: 400px;
             z-index: -1;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .background-logo-container img {
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.5));
+            
         }
         .container {
             max-width: 800px;
@@ -298,6 +301,9 @@
     </style>
 </head>
 <body>
+    <div class="background-logo-container">
+        <img src="logo_2025web.png" alt="Logo G&N CE">
+    </div>
         <div class="container">
             <div class="header">
                 <h1>Proyectos Disponibles</h1>
@@ -372,10 +378,23 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
+    <!-- Librerías para generación de PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        // Puente de compatibilidad para jspdf-autotable v3 con jspdf v2.
+        // Se ejecuta ANTES de que se cargue el plugin.
+        window.jsPDF = window.jspdf.jsPDF;
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <!-- Configuración centralizada de Firebase -->
     <script src="firebase-init.js"></script>
     <!-- Servicio de notificaciones -->
     <script src="notification-service.js"></script>
+    <!-- Módulo de generación de PDF -->
+    <script src="pdf-generator.js"></script>
 
     <script>
 
@@ -671,7 +690,7 @@ Se recomienda hacer un backup antes de restaurar.
             window.location.href = `vistaProyecto.html?id=${projectId}`;
         }
 
-        function downloadSummary(projectId) {
+        async function downloadSummary(projectId) {
             // Mostrar indicador de carga
             const loadingIndicator = document.createElement('div');
             loadingIndicator.id = 'pdf-loading';
@@ -698,48 +717,20 @@ Se recomienda hacer un backup antes de restaurar.
             `;
             document.body.appendChild(loadingIndicator);
 
-            // Crear iframe oculto para cargar la página y activar la descarga automática
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            iframe.src = `vistaProyecto.html?id=${projectId}&download=pdf`;
-            
-            // Escuchar mensajes del iframe para saber cuándo termina
-            const messageHandler = (event) => {
-                if (event.data && event.data.type === 'pdf-download-complete') {
-                    // Remover indicador de carga
-                    const loading = document.getElementById('pdf-loading');
-                    if (loading) {
-                        document.body.removeChild(loading);
-                    }
-                    
-                    // Remover iframe
-                    if (iframe.parentNode) {
-                        document.body.removeChild(iframe);
-                    }
-                    
-                    // Remover el event listener
-                    window.removeEventListener('message', messageHandler);
-                    
-                    // Mostrar mensaje de éxito
-                    showSuccess('PDF generado y descargado exitosamente');
-                }
-            };
-            
-            window.addEventListener('message', messageHandler);
-            document.body.appendChild(iframe);
-            
-            // Timeout de seguridad para remover elementos si algo falla
-            setTimeout(() => {
+            try {
+                // Llamar a la función centralizada del nuevo módulo
+                await exportProjectToPDF(projectId, db);
+                showSuccess('Resumen PDF generado y descargado.');
+            } catch (error) {
+                console.error("Fallo en la generación de PDF:", error);
+                showError('No se pudo generar el PDF. Inténtalo de nuevo.');
+            } finally {
+                // Remover indicador de carga
                 const loading = document.getElementById('pdf-loading');
                 if (loading) {
                     document.body.removeChild(loading);
-                    showError('Tiempo de espera agotado. Inténtalo nuevamente.');
                 }
-                if (iframe.parentNode) {
-                    document.body.removeChild(iframe);
-                }
-                window.removeEventListener('message', messageHandler);
-            }, 30000); // 30 segundos timeout
+            }
         }
 
         function loadProjects() {

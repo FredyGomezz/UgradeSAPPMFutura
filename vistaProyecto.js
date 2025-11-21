@@ -262,7 +262,7 @@ function removeHolidayItem(button) {
 }
 
 // Función para actualizar estadísticas de progreso
-function updateProgressStats(data) {
+window.updateProgressStats = function(data) {
     // Recalcular estadísticas
     let totalTasks = 0;
     let totalHours = 0;
@@ -610,6 +610,73 @@ function setupCalendarInteractions(data) {
 
 
 let sCurveChartInstance = null;
+
+function calculateSCurveData(tasks, projectStart, projectEnd) {
+    const dateLabels = [];
+    if (projectStart && projectEnd) {
+        const currentDate = new Date(projectStart);
+        while (currentDate <= projectEnd) {
+            dateLabels.push(formatDateForInput(currentDate));
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+    }
+
+    const totalTasks = tasks.length;
+    const totalHours = tasks.reduce((sum, t) => sum + (parseFloat(t.durationHours) || 0), 0);
+
+    // Planned
+    const plannedPercent = [];
+    const plannedHours = [];
+    let cumulativePlannedHours = 0;
+    const dailyPlannedHours = {};
+    tasks.forEach(task => {
+        const taskEnd = task.endDate && typeof task.endDate.toDate === 'function' ? task.endDate.toDate() : new Date(task.endDate);
+        if (taskEnd) {
+            const dateStr = formatDateForInput(taskEnd);
+            if (!dailyPlannedHours[dateStr]) {
+                dailyPlannedHours[dateStr] = 0;
+            }
+            dailyPlannedHours[dateStr] += parseFloat(task.durationHours) || 0;
+        }
+    });
+
+    dateLabels.forEach(dateStr => {
+        if (dailyPlannedHours[dateStr]) {
+            cumulativePlannedHours += dailyPlannedHours[dateStr];
+        }
+        plannedHours.push(cumulativePlannedHours);
+        plannedPercent.push(totalHours > 0 ? (cumulativePlannedHours / totalHours) * 100 : 0);
+    });
+
+    // Actual
+    const actualPercent = [];
+    const actualHours = [];
+    let cumulativeActualHours = 0;
+    const dailyActualHours = {};
+    tasks.forEach(task => {
+        if (task.completed && task.completedAt) {
+            const completedAt = task.completedAt && typeof task.completedAt.toDate === 'function' ? task.completedAt.toDate() : new Date(task.completedAt);
+            if (completedAt) {
+                const dateStr = formatDateForInput(completedAt);
+                if (!dailyActualHours[dateStr]) {
+                    dailyActualHours[dateStr] = 0;
+                }
+                dailyActualHours[dateStr] += parseFloat(task.durationHours) || 0;
+            }
+        }
+    });
+
+    dateLabels.forEach(dateStr => {
+        if (dailyActualHours[dateStr]) {
+            cumulativeActualHours += dailyActualHours[dateStr];
+        }
+        actualHours.push(cumulativeActualHours);
+        actualPercent.push(totalHours > 0 ? (cumulativeActualHours / totalHours) * 100 : 0);
+    });
+
+    return { dateLabels, plannedPercent, plannedHours, actualPercent, actualHours, totalHours };
+}
+
 function renderSCurve(data) {
     const chartContainer = document.getElementById('s-curve-chart');
     if (!chartContainer) return;
@@ -1215,7 +1282,7 @@ function refreshSCurve(data) {
     renderSCurve(data);
 }
 
-function updateSCurveMetrics(data) {
+window.updateSCurveMetrics = function(data) {
     // Esta función actualiza las métricas Y la gráfica de curva S cuando cambian los estados de completado
 
     // Recolectar tareas ordenadas por fecha de fin
@@ -1653,10 +1720,35 @@ function renderProject(data, autoDownload = null, projectId = null) {
     setupHolidaysFunctionality(data);
     setupBackToProjectsFunctionality();
     setupLogoutFunctionality();
+    setupDownloadPDFButton(); // Añadir la configuración del botón de PDF
 
     console.log('Proyecto renderizado exitosamente');
 }
 
+
+// Función para configurar el botón de descarga de PDF
+function setupDownloadPDFButton() {
+    const downloadBtn = document.getElementById('download-pdf-btn');
+    if (downloadBtn) {
+        // Evitar añadir listeners duplicados
+        if (downloadBtn.hasAttribute('data-listener-attached')) {
+            return;
+        }
+        downloadBtn.setAttribute('data-listener-attached', 'true');
+
+        downloadBtn.addEventListener('click', () => {
+            const params = new URLSearchParams(window.location.search);
+            const projectId = params.get('id');
+            if (!projectId) {
+                console.error('No se encontró el ID del proyecto para generar el PDF.');
+                alert('Error: No se pudo identificar el proyecto.');
+                return;
+            }
+            // La variable 'db' se asume que está disponible globalmente desde firebase-init.js
+            exportProjectToPDF(projectId, db);
+        });
+    }
+}
 
 // Función para configurar interacciones de fases
 function setupPhaseInteractions() {
