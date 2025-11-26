@@ -190,6 +190,11 @@
                         <a href="#" id="show-register" style="color: #87cefa; text-decoration: none;">Regístrate aquí</a>
                     </p>
                 </div>
+                <div id="reset-password-toggle" style="margin-top: 10px;">
+                    <p style="color: rgba(255,255,255,0.7); font-size: 0.9rem;">
+                        <a href="#" id="show-reset-password" style="color: #87cefa; text-decoration: none;">¿Olvidaste tu contraseña?</a>
+                    </p>
+                </div>
             </div>
             
             <!-- Formulario de registro (oculto inicialmente) -->
@@ -215,6 +220,23 @@
                 </div>
             </div>
             
+            <!-- Formulario de reseteo de contraseña (oculto inicialmente) -->
+            <div id="reset-password-form-container" style="display: none;">
+                <h2>Restablecer Contraseña</h2>
+                <form id="reset-password-form">
+                    <div class="input-group">
+                        <input type="email" id="reset-email" placeholder="Correo electrónico" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Enviar Enlace de Recuperación</button>
+                </form>
+                <div style="margin-top: 20px;">
+                    <p style="color: rgba(255,255,255,0.7); font-size: 0.9rem;">
+                        ¿Recordaste tu contraseña? 
+                        <a href="#" id="show-login-from-reset" style="color: #87cefa; text-decoration: none;">Vuelve a iniciar sesión</a>
+                    </p>
+                </div>
+            </div>
+
             <p id="error-message"></p>
         </div>
 
@@ -234,11 +256,16 @@
         const registerEmailInput = document.getElementById('register-email');
         const registerPasswordInput = document.getElementById('register-password');
         const registerConfirmPasswordInput = document.getElementById('register-confirm-password');
+        const resetPasswordForm = document.getElementById('reset-password-form');
+        const resetEmailInput = document.getElementById('reset-email');
         const errorMessage = document.getElementById('error-message');
         const loginFormContainer = document.getElementById('login-form-container');
         const registerFormContainer = document.getElementById('register-form-container');
+        const resetPasswordFormContainer = document.getElementById('reset-password-form-container');
         const showRegisterLink = document.getElementById('show-register');
         const showLoginLink = document.getElementById('show-login');
+        const showResetPasswordLink = document.getElementById('show-reset-password');
+        const showLoginFromResetLink = document.getElementById('show-login-from-reset');
 
         // Efecto de reflejo en el logo
         const logoContainer = document.querySelector('.logo-container');
@@ -253,6 +280,7 @@
         showRegisterLink.addEventListener('click', (e) => {
             e.preventDefault();
             loginFormContainer.style.display = 'none';
+            resetPasswordFormContainer.style.display = 'none';
             registerFormContainer.style.display = 'block';
             errorMessage.textContent = '';
         });
@@ -260,6 +288,22 @@
         showLoginLink.addEventListener('click', (e) => {
             e.preventDefault();
             registerFormContainer.style.display = 'none';
+            resetPasswordFormContainer.style.display = 'none';
+            loginFormContainer.style.display = 'block';
+            errorMessage.textContent = '';
+        });
+
+        showResetPasswordLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginFormContainer.style.display = 'none';
+            registerFormContainer.style.display = 'none';
+            resetPasswordFormContainer.style.display = 'block';
+            errorMessage.textContent = '';
+        });
+
+        showLoginFromResetLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            resetPasswordFormContainer.style.display = 'none';
             loginFormContainer.style.display = 'block';
             errorMessage.textContent = '';
         });
@@ -359,6 +403,33 @@
                     }
                 });
         });
+
+        // Manejar reseteo de contraseña
+        resetPasswordForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = resetEmailInput.value;
+            errorMessage.textContent = '';
+
+            auth.sendPasswordResetEmail(email)
+                .then(() => {
+                    errorMessage.style.color = '#4CAF50'; // Verde para éxito
+                    errorMessage.textContent = 'Si existe una cuenta para este correo, se ha enviado un enlace para restablecer la contraseña.';
+                    
+                    // Opcional: volver al login después de un tiempo
+                    setTimeout(() => {
+                        resetPasswordFormContainer.style.display = 'none';
+                        loginFormContainer.style.display = 'block';
+                    }, 5000);
+                })
+                .catch((error) => {
+                    console.error('Password reset error:', error);
+                    // Por seguridad, no revelamos si el usuario no existe.
+                    // Mostramos el mismo mensaje de éxito.
+                    errorMessage.style.color = '#4CAF50';
+                    errorMessage.textContent = 'Si existe una cuenta para este correo, se ha enviado un enlace para restablecer la contraseña.';
+                });
+        });
+
     </script>
 </body>
 </html>
