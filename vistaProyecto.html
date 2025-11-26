@@ -6,6 +6,17 @@
     <title>Vista de Proyecto - PDT Futura</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="vistaProyecto.css">
+    <style>
+        /**
+         * Ajuste para alinear las etiquetas de las métricas en la parte inferior de sus tarjetas.
+         * Esto mejora la consistencia visual de la sección de la Curva S.
+         */
+        .s-curve-metrics .metric-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+    </style>
 </head>
 <body>
     <div class="container" id="project-container">
@@ -180,20 +191,22 @@
             </div>
 
             <div class="s-curve-section" id="curvaSProyecto">
-                <h2>Curva S - Seguimiento del Proyecto</h2>
-                <div id="s-curve-chart" style="width: 100%; height: 500px;"></div>
-                <div class="s-curve-metrics">
-                    <div class="metric-card">
-                        <div class="metric-value" id="schedule-variance">--</div>
-                        <div class="metric-label">Variación de Cronograma</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-value" id="performance-index">--</div>
-                        <div class="metric-label">Índice de Rendimiento</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-value" id="project-status">--</div>
-                        <div class="metric-label">Estado del Proyecto</div>
+                <h2>Seguimiento visual del Proyecto</h2>
+                <div id="s-curve-content"> <!-- Contenedor agregado -->
+                    <canvas id="s-curve-chart"></canvas>
+                    <div class="s-curve-metrics">
+                        <div class="metric-card">
+                            <div class="metric-value" id="schedule-variance">--</div>
+                            <div class="metric-label">Variación de Cronograma</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="performance-index">--</div>
+                            <div class="metric-label">Índice de Rendimiento</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="project-status">--</div>
+                            <div class="metric-label">Estado del Proyecto</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -211,6 +224,12 @@
         </div>
     </div>
 
+    <!-- Contenedor oculto para la generación de la Curva S para el PDF -->
+    <div id="pdf-s-curve-generator" style="position: absolute; left: -9999px; top: -9999px; width: 1200px; height: 600px;">
+        <canvas id="pdf-s-curve-canvas"></canvas>
+    </div>
+
+
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -221,7 +240,22 @@
     <!-- Librerías para Generación de PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        // Puente de compatibilidad para jspdf-autotable v3 con jspdf v2.
+        // Se ejecuta ANTES de que se cargue el plugin.
+        window.jsPDF = window.jspdf.jsPDF;
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     
+    <!--  Añade estas dos líneas ANTES de cargar pdf-generator.js y vistaProyecto.js
+    Esto asegura que las clases ReportDataBuilder y PDFDrawer estén disponibles
+    cuando el generador de PDF las necesite.
+    -->
+    <script src="project-utils.js"></script>
+    <script src="report-data-builder.js"></script>
+    <script src="pdf-drawer.js"></script>
+
+
     <!-- Lógica de generación de PDF refactorizada -->
     <script src="pdf-generator.js"></script>
 
@@ -244,5 +278,30 @@
     </div>
 
     <script src="vistaProyecto.js"></script>
+
+    <script>
+        /**
+         * Este script unifica la lógica de las métricas de la Curva S en la vista del proyecto.
+         * Utiliza ReportDataBuilder como la única fuente de verdad para los cálculos,
+         * asegurando que las métricas mostradas en la página sean idénticas a las del PDF.
+         */
+        document.addEventListener('DOMContentLoaded', () => {
+            // La función `updateSCurveMetrics` se llamará desde vistaProyecto.js cuando los datos estén listos.
+            // La exponemos globalmente para que sea accesible.
+            window.updateSCurveMetrics = (projectData) => {
+                if (!projectData || typeof ReportDataBuilder === 'undefined') {
+                    console.error("ReportDataBuilder no está disponible o no hay datos del proyecto.");
+                    return;
+                }
+
+                const reportBuilder = new ReportDataBuilder(projectData);
+                const metrics = reportBuilder.getAdvancedMetrics();
+
+                document.getElementById('schedule-variance').textContent = metrics.scheduleVariance || '--';
+                document.getElementById('performance-index').textContent = metrics.performanceIndex || '--';
+                document.getElementById('project-status').textContent = metrics.projectStatus || '--';
+            };
+        });
+    </script>
 </body>
 </html>

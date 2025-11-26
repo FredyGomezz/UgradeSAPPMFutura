@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "serve:local": "node local-server.js"
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.6",

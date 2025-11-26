@@ -328,7 +328,7 @@
 
             <ul id="project-list">
                 <!-- La lista de proyectos se cargará aquí desde Firebase -->
-                <li><a href="intro.html?id=default">Proyecto de Muestra (intro.html)</a></li>
+                <li><a href="intro.html?id=default">Cargando Proyecto Autorizados</a></li>
             </ul>
         </div>
 
@@ -393,14 +393,18 @@
     <script src="firebase-init.js"></script>
     <!-- Servicio de notificaciones -->
     <script src="notification-service.js"></script>
+    <!-- Dependencias para generación de PDF -->
+    <script src="report-data-builder.js"></script>
+    <script src="pdf-drawer.js"></script>
     <!-- Módulo de generación de PDF -->
     <script src="pdf-generator.js"></script>
+    <!-- Funciones de utilidad compartidas -->
+    <script src="project-utils.js"></script>
 
     <script>
 
         let currentUser = null;
 
-        // Inicializar servicio de notificaciones
         const notificationService = initializeNotificationService(db);
 
         auth.onAuthStateChanged(user => {
@@ -447,7 +451,7 @@
                     .catch(error => {
                         console.error('Error de conexión a Firestore:', error);
                         document.getElementById('connection-status').textContent = 'Conexión: Error';
-                        showError('Error de conexión a la base de datos. Verifica tu conexión a internet.');
+                        showPageNotification('Error de conexión a la base de datos. Verifica tu conexión a internet.', 'error');
                     });
 
             } else {
@@ -642,7 +646,7 @@ Se recomienda hacer un backup antes de restaurar.
                                             document.body.removeChild(loading);
                                         }
                                         
-                                        showSuccess(`Proyecto "${projectName}" restaurado exitosamente desde backup del ${formatDate(backupData.backupDate)}`);
+                                        showPageNotification(`Proyecto "${projectName}" restaurado exitosamente desde backup del ${formatDate(backupData.backupDate)}`, 'success');
                                         
                                         // Recargar la lista de proyectos
                                         loadProjects();
@@ -691,39 +695,40 @@ Se recomienda hacer un backup antes de restaurar.
         }
 
         async function downloadSummary(projectId) {
-            // Mostrar indicador de carga
+            // Mostrar indicador de carga simplificado
             const loadingIndicator = document.createElement('div');
             loadingIndicator.id = 'pdf-loading';
             loadingIndicator.innerHTML = `
                 <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
                            background: rgba(0,0,0,0.7); z-index: 9999; 
                            display: flex; align-items: center; justify-content: center;">
-                    <div style="background: white; padding: 20px; border-radius: 10px; text-align: center;">
-                        <div style="margin-bottom: 15px;">
-                            <div style="border: 3px solid #f3f3f3; border-top: 3px solid #3498db; 
-                                       border-radius: 50%; width: 30px; height: 30px; 
-                                       animation: spin 1s linear infinite; margin: 0 auto;"></div>
-                        </div>
-                        <p>Generando PDF del proyecto...</p>
-                        <p style="font-size: 0.9em; color: #666;">Esto puede tomar unos momentos</p>
+                    <div style="background: white; color: #333; padding: 30px; border-radius: 10px; text-align: center; box-shadow: 0 5px 20px rgba(0,0,0,0.3);">
+                        <p style="margin: 0; font-size: 1.2em; font-weight: bold;">Generando proyecto</p>
                     </div>
                 </div>
-                <style>
-                    @keyframes spin {
-                        0% { transform: rotate(0deg); }
-                        100% { transform: rotate(360deg); }
-                    }
-                </style>
             `;
             document.body.appendChild(loadingIndicator);
 
             try {
-                // Llamar a la función centralizada del nuevo módulo
-                await exportProjectToPDF(projectId, db);
-                showSuccess('Resumen PDF generado y descargado.');
+                const projectDoc = await db.collection('projects').doc(projectId).get();
+                if (!projectDoc.exists) {
+                    throw new Error('Proyecto no encontrado.');
+                }
+                const projectData = projectDoc.data();
+
+                // Usar la función global del nuevo archivo de utilidades
+                const sCurveData = window.calculateSCurveData(projectData);
+                const sCurvePayload = {
+                    data: sCurveData // Pasamos los datos, no una imagen.
+                };
+
+                await window.exportProjectToPDF(projectId, db, sCurvePayload, currentUser);
+                
+                showPageNotification('PDF generado y descargado exitosamente.', 'success');
+
             } catch (error) {
                 console.error("Fallo en la generación de PDF:", error);
-                showError('No se pudo generar el PDF. Inténtalo de nuevo.');
+                showPageNotification(`No se pudo generar el PDF: ${error.message}`, 'error');
             } finally {
                 // Remover indicador de carga
                 const loading = document.getElementById('pdf-loading');
@@ -855,6 +860,7 @@ Se recomienda hacer un backup antes de restaurar.
                         downloadBtn.className = 'project-action-btn';
                         downloadBtn.innerHTML = '<i class="fas fa-download"></i>';
                         downloadBtn.setAttribute('data-tooltip', 'Descargar Resumen PDF');
+                        // ¡CORRECCIÓN CLAVE! Asignar el evento directamente al crear el botón.
                         downloadBtn.onclick = () => downloadSummary(projectId);
                         
                         // Botón Copia Local (solo admin)
@@ -918,39 +924,35 @@ Se recomienda hacer un backup antes de restaurar.
                     
                     // Mostrar mensaje de error en la página
                     const errorMessage = error.message || 'Error desconocido al cargar proyectos';
-                    showError(`Error al cargar proyectos: ${errorMessage}`);
+                    showPageNotification(`Error al cargar proyectos: ${errorMessage}`, 'error');
                 });
         }
 
-        function showError(message) {
-            const errorDiv = document.getElementById('error-message');
-            const errorText = document.getElementById('error-text');
-            errorText.textContent = message;
-            errorDiv.style.display = 'block';
-        }
+        function showPageNotification(message, type = 'error') {
+            const notificationDiv = document.getElementById('error-message');
+            const notificationText = document.getElementById('error-text');
+            const retryBtn = document.getElementById('retry-btn');
 
-        function showSuccess(message) {
-            // Crear elemento de éxito si no existe
-            let successDiv = document.getElementById('success-message');
-            if (!successDiv) {
-                successDiv = document.createElement('div');
-                successDiv.id = 'success-message';
-                successDiv.style.cssText = `
-                    position: fixed; top: 20px; right: 20px; z-index: 1000;
-                    background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;
-                    padding: 15px 20px; border-radius: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                    display: none; max-width: 350px;
-                `;
-                document.body.appendChild(successDiv);
+            notificationText.textContent = message;
+
+            if (type === 'success') {
+                notificationDiv.style.background = 'rgba(21, 87, 36, 0.5)'; // Verde oscuro, menos transparente
+                notificationDiv.style.borderColor = 'rgba(40, 167, 69, 0.6)';
+                notificationText.style.color = '#d4edda'; // Texto claro para contraste
+                retryBtn.style.display = 'none';
+            } else { // 'error'
+                notificationDiv.style.background = 'rgba(128, 29, 29, 0.8)'; // Rojo oscuro, menos transparente
+                notificationDiv.style.borderColor = 'rgba(255, 0, 0, 0.6)';
+                notificationText.style.color = '#f8d7da'; // Texto claro para contraste
+                retryBtn.style.display = 'inline-block';
             }
             
-            successDiv.textContent = message;
-            successDiv.style.display = 'block';
-            
-            // Auto-hide después de 3 segundos
+            notificationDiv.style.display = 'block';
+
+            // Auto-hide after 10 seconds
             setTimeout(() => {
-                successDiv.style.display = 'none';
-            }, 3000);
+                notificationDiv.style.display = 'none';
+            }, 60000);
         }
 
         function hideError() {
@@ -958,32 +960,8 @@ Se recomienda hacer un backup antes de restaurar.
             errorDiv.style.display = 'none';
         }
 
-        function formatDate(dateValue) {
-            if (!dateValue) return 'N/A';
-            
-            try {
-                // Si es un Timestamp de Firestore (tiene método toDate)
-                if (typeof dateValue.toDate === 'function') {
-                    return dateValue.toDate().toLocaleDateString('es-ES');
-                }
-                
-                // Si es un string o número, intentar convertirlo
-                if (typeof dateValue === 'string' || typeof dateValue === 'number') {
-                    const date = new Date(dateValue);
-                    return isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString('es-ES');
-                }
-                
-                // Si ya es un objeto Date
-                if (dateValue instanceof Date) {
-                    return dateValue.toLocaleDateString('es-ES');
-                }
-                
-                return 'N/A';
-            } catch (error) {
-                console.warn('Error formateando fecha:', error, dateValue);
-                return 'N/A';
-            }
-        }
+        // Usar la función global formatDate de project-utils.js
+        const formatDate = (dateValue) => window.parseDate(dateValue)?.toLocaleDateString('es-ES') || 'N/A';
 
         // Event listener para el botón de reintentar
         document.getElementById('retry-btn').addEventListener('click', () => {
@@ -1176,7 +1154,7 @@ Se recomienda hacer un backup antes de restaurar.
                     })
                     .then(() => {
                         console.log('Limpieza completada exitosamente');
-                        showSuccess('Limpieza de datos completada exitosamente en todos los proyectos');
+                        showPageNotification('Limpieza de datos completada exitosamente en todos los proyectos', 'success');
                         loadProjects(); // Recargar la lista
                     })
                     .catch(error => {
@@ -1244,7 +1222,7 @@ Se recomienda hacer un backup antes de restaurar.
                                     })
                                     .then(() => {
                                         console.log('Limpieza completada exitosamente');
-                                        showSuccess('Limpieza de datos completada exitosamente');
+                                        showPageNotification('Limpieza de datos completada exitosamente', 'success');
                                         loadProjectUsers(projectId);
                                     })
                                     .catch(error => {
@@ -1548,9 +1526,9 @@ Se recomienda hacer un backup antes de restaurar.
                                 `;
                                 document.body.appendChild(sessionWarning);
                                 
-                                showSuccess('Usuario creado exitosamente. Refresca la página para continuar como administrador.');
+                                showPageNotification('Usuario creado exitosamente. Refresca la página para continuar como administrador.', 'success');
                             } else {
-                                showSuccess('Usuario autorizado para el proyecto exitosamente');
+                                showPageNotification('Usuario autorizado para el proyecto exitosamente', 'success');
                             }
 
                             // Limpiar formulario

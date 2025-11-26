@@ -6,6 +6,9 @@
 // Inicializar servicio de notificaciones
 const notificationService = initializeNotificationService(db);
 
+// Objeto global para almacenar instancias de gráficos. Se inicializa aquí para estar disponible en todo el script.
+window.myCharts = {};
+
 // Función para obtener el rol del usuario actual
 async function getCurrentUserRole() {
     try {
@@ -54,11 +57,11 @@ async function loadProjectConfig(data) {
     const includeSundays = document.getElementById('include-sundays');
     const includeHolidays = document.getElementById('include-holidays');
     if (includeSaturdays) {
-        includeSaturdays.checked = data.includeSaturdays !== undefined ? !data.includeSaturdays : false;
+        includeSaturdays.checked = data.includeSaturdays === false; // Si es false, se excluye (marcado)
         includeSaturdays.disabled = !isAdmin; // Solo admin puede modificar
     }
     if (includeSundays) {
-        includeSundays.checked = data.includeSundays !== undefined ? !data.includeSundays : false;
+        includeSundays.checked = data.includeSundays === false; // Si es false, se excluye (marcado)
         includeSundays.disabled = !isAdmin; // Solo admin puede modificar
     }
     if (includeHolidays) {
@@ -102,15 +105,8 @@ toggleHolidaysList();
 function safeDateFormatForDisplay(dateValue) {
     if (!dateValue) return '--';
     
-    try {
-        let date;
-        if (typeof dateValue.toDate === 'function') {
-            // Es un Timestamp de Firestore
-            date = dateValue.toDate();
-        } else {
-            // Es una cadena o número
-            date = new Date(dateValue);
-        }
+    try { // Usar la función global parseDate
+        const date = window.parseDate(dateValue);
         
         if (isNaN(date.getTime())) {
             console.warn('Fecha inválida:', dateValue);
@@ -609,368 +605,6 @@ function setupCalendarInteractions(data) {
 }
 
 
-let sCurveChartInstance = null;
-
-function calculateSCurveData(tasks, projectStart, projectEnd) {
-    const dateLabels = [];
-    if (projectStart && projectEnd) {
-        const currentDate = new Date(projectStart);
-        while (currentDate <= projectEnd) {
-            dateLabels.push(formatDateForInput(currentDate));
-            currentDate.setDate(currentDate.getDate() + 1);
-        }
-    }
-
-    const totalTasks = tasks.length;
-    const totalHours = tasks.reduce((sum, t) => sum + (parseFloat(t.durationHours) || 0), 0);
-
-    // Planned
-    const plannedPercent = [];
-    const plannedHours = [];
-    let cumulativePlannedHours = 0;
-    const dailyPlannedHours = {};
-    tasks.forEach(task => {
-        const taskEnd = task.endDate && typeof task.endDate.toDate === 'function' ? task.endDate.toDate() : new Date(task.endDate);
-        if (taskEnd) {
-            const dateStr = formatDateForInput(taskEnd);
-            if (!dailyPlannedHours[dateStr]) {
-                dailyPlannedHours[dateStr] = 0;
-            }
-            dailyPlannedHours[dateStr] += parseFloat(task.durationHours) || 0;
-        }
-    });
-
-    dateLabels.forEach(dateStr => {
-        if (dailyPlannedHours[dateStr]) {
-            cumulativePlannedHours += dailyPlannedHours[dateStr];
-        }
-        plannedHours.push(cumulativePlannedHours);
-        plannedPercent.push(totalHours > 0 ? (cumulativePlannedHours / totalHours) * 100 : 0);
-    });
-
-    // Actual
-    const actualPercent = [];
-    const actualHours = [];
-    let cumulativeActualHours = 0;
-    const dailyActualHours = {};
-    tasks.forEach(task => {
-        if (task.completed && task.completedAt) {
-            const completedAt = task.completedAt && typeof task.completedAt.toDate === 'function' ? task.completedAt.toDate() : new Date(task.completedAt);
-            if (completedAt) {
-                const dateStr = formatDateForInput(completedAt);
-                if (!dailyActualHours[dateStr]) {
-                    dailyActualHours[dateStr] = 0;
-                }
-                dailyActualHours[dateStr] += parseFloat(task.durationHours) || 0;
-            }
-        }
-    });
-
-    dateLabels.forEach(dateStr => {
-        if (dailyActualHours[dateStr]) {
-            cumulativeActualHours += dailyActualHours[dateStr];
-        }
-        actualHours.push(cumulativeActualHours);
-        actualPercent.push(totalHours > 0 ? (cumulativeActualHours / totalHours) * 100 : 0);
-    });
-
-    return { dateLabels, plannedPercent, plannedHours, actualPercent, actualHours, totalHours };
-}
-
-function renderSCurve(data) {
-    const chartContainer = document.getElementById('s-curve-chart');
-    if (!chartContainer) return;
-    chartContainer.innerHTML = '<canvas id="sCurveCanvas" height="400"></canvas>';
-    const ctx = document.getElementById('sCurveCanvas').getContext('2d');
-
-    // Recolectar tareas ordenadas por fecha de fin
-    let tasks = [];
-    if (data.phases && Array.isArray(data.phases)) {
-        data.phases.forEach(phase => {
-            if (phase.tasks && Array.isArray(phase.tasks)) {
-                phase.tasks.map(normalizeTask).forEach(task => tasks.push(task));
-            }
-        });
-    }
-    tasks = tasks.filter(t => t.startDate).sort((a, b) => {
-        const aDate = a.endDate && typeof a.endDate.toDate === 'function' ? a.endDate.toDate() : new Date(a.endDate || a.startDate);
-        const bDate = b.endDate && typeof b.endDate.toDate === 'function' ? b.endDate.toDate() : new Date(b.endDate || b.startDate);
-        return aDate - bDate;
-    });
-
-    if (tasks.length === 0) return;
-
-    // Calcular fechas del proyecto
-    const projectStart = data.startDate && typeof data.startDate.toDate === 'function' ? data.startDate.toDate() : new Date(data.startDate);
-    const projectEnd = tasks[tasks.length - 1].endDate && typeof tasks[tasks.length - 1].endDate.toDate === 'function' ?
-        tasks[tasks.length - 1].endDate.toDate() : new Date(tasks[tasks.length - 1].endDate);
-
-    // Generar fechas diarias desde inicio hasta fin del proyecto
-    const dateLabels = [];
-    const currentDate = new Date(projectStart);
-    while (currentDate <= projectEnd) {
-        dateLabels.push(formatDateForInput(currentDate));
-        currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    // Calcular totales del proyecto
-    const totalTasks = tasks.length;
-    const totalHours = tasks.reduce((sum, t) => sum + (parseFloat(t.durationHours) || 0), 0);
-
-    // Calcular progreso PLANIFICADO (basado en fechas)
-    const plannedPercent = [];
-    const plannedHours = [];
-
-    dateLabels.forEach(dateStr => {
-        const currentDate = new Date(dateStr + 'T00:00:00');
-
-        // Calcular tareas que deberían estar completadas HASTA esta fecha
-        let tasksCompletedByDate = 0;
-        let hoursCompletedByDate = 0;
-
-        tasks.forEach(task => {
-            const taskEnd = task.endDate && typeof task.endDate.toDate === 'function' ? task.endDate.toDate() : new Date(task.endDate);
-            if (taskEnd <= currentDate) {
-                tasksCompletedByDate++;
-                hoursCompletedByDate += parseFloat(task.durationHours) || 0;
-            }
-        });
-
-        plannedPercent.push(Math.min(100, (tasksCompletedByDate / totalTasks) * 100));
-        plannedHours.push(Math.min(totalHours, hoursCompletedByDate));
-    });
-
-    // Calcular progreso REAL (basado en tareas completadas)
-    const actualPercent = [];
-    const actualHours = [];
-    let actualTasksCompleted = 0;
-    let actualHoursCompleted = 0;
-
-    dateLabels.forEach(dateStr => {
-        const currentDate = new Date(dateStr + 'T00:00:00');
-
-        // Reset para cada fecha
-        actualTasksCompleted = 0;
-        actualHoursCompleted = 0;
-
-        // Contar tareas realmente completadas hasta esta fecha
-        tasks.forEach(task => {
-            if (task.completed) {
-                const taskEnd = task.endDate && typeof task.endDate.toDate === 'function' ? task.endDate.toDate() : new Date(task.endDate);
-                if (taskEnd <= currentDate) {
-                    actualTasksCompleted++;
-                    actualHoursCompleted += parseFloat(task.durationHours) || 0;
-                }
-            }
-        });
-
-        actualPercent.push(Math.min(100, (actualTasksCompleted / totalTasks) * 100));
-        actualHours.push(Math.min(totalHours, actualHoursCompleted));
-    });
-
-    // Crear gráfica con Chart.js
-    if (sCurveChartInstance) sCurveChartInstance.destroy();
-    sCurveChartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: dateLabels.map(d => {
-                const date = new Date(d + 'T00:00:00');
-                return date.toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
-            }),
-            datasets: [
-                {
-                    label: 'Plan - % Tareas',
-                    data: plannedPercent,
-                    borderColor: '#95a5a6',
-                    backgroundColor: 'rgba(149, 165, 166, 0.1)',
-                    borderDash: [5, 5],
-                    yAxisID: 'y1',
-                    tension: 0.2,
-                    pointRadius: 0,
-                    fill: false
-                },
-                {
-                    label: 'Real - % Tareas',
-                    data: actualPercent,
-                    borderColor: '#3498db',
-                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                    yAxisID: 'y1',
-                    tension: 0.2,
-                    pointRadius: 3,
-                    fill: false
-                },
-                {
-                    label: 'Plan - Horas',
-                    data: plannedHours,
-                    borderColor: '#bdc3c7',
-                    backgroundColor: 'rgba(189, 195, 199, 0.1)',
-                    borderDash: [5, 5],
-                    yAxisID: 'y2',
-                    tension: 0.2,
-                    pointRadius: 0,
-                    fill: false
-                },
-                {
-                    label: 'Real - Horas',
-                    data: actualHours,
-                    borderColor: '#27ae60',
-                    backgroundColor: 'rgba(39, 174, 96, 0.1)',
-                    yAxisID: 'y2',
-                    tension: 0.2,
-                    pointRadius: 3,
-                    fill: false
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            stacked: false,
-            plugins: {
-                legend: {
-                    position: 'top',
-                    labels: {
-                        usePointStyle: true,
-                        padding: 20
-                    }
-                },
-                title: {
-                    display: true,
-                    text: 'Curva S - Plan vs Real',
-                    font: { size: 16, weight: 'bold' }
-                },
-                tooltip: {
-                    callbacks: {
-                        title: function(context) {
-                            const dateIndex = context[0].dataIndex;
-                            const fullDate = dateLabels[dateIndex];
-                            const date = new Date(fullDate + 'T00:00:00');
-                            return date.toLocaleDateString('es-ES', {
-                                weekday: 'long',
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                            });
-                        },
-                        label: function(context) {
-                            let label = context.dataset.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            if (context.datasetIndex < 2) {
-                                // Porcentajes
-                                label += Math.round(context.parsed.y) + '%';
-                            } else {
-                                // Horas
-                                label += Math.round(context.parsed.y) + 'h';
-                            }
-                            return label;
-                        }
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    display: true,
-                    title: { display: true, text: 'Fecha' }
-                },
-                y1: {
-                    type: 'linear',
-                    display: true,
-                    position: 'left',
-                    min: 0,
-                    max: 100,
-                    title: { display: true, text: '% Completado' },
-                    grid: { drawOnChartArea: false }
-                },
-                y2: {
-                    type: 'linear',
-                    display: true,
-                    position: 'right',
-                    min: 0,
-                    max: Math.max(100, totalHours),
-                    title: { display: true, text: 'Horas Acumuladas' }
-                }
-            }
-        }
-    });
-
-    // Actualizar métricas
-    const today = new Date();
-    const todayStr = formatDateForInput(today);
-
-    // Encontrar el índice de la fecha actual en dateLabels
-    const todayIndex = dateLabels.findIndex(dateStr => dateStr >= todayStr);
-    const currentIndex = todayIndex >= 0 ? todayIndex : dateLabels.length - 1;
-
-    // Usar el progreso hasta la fecha actual para calcular métricas
-    const currentPlannedPct = plannedPercent[currentIndex] || 0;
-    const currentActualPct = actualPercent[currentIndex] || 0;
-    const currentPlannedHrs = plannedHours[currentIndex] || 0;
-    const currentActualHrs = actualHours[currentIndex] || 0;
-
-    // Verificar si el proyecto no ha iniciado
-    const projectHasStarted = today >= projectStart || tasks.some(task => task.completed);
-
-    let scheduleStatus, performanceStatus, projectStatus, scheduleVariance, spi;
-
-    if (!projectHasStarted) {
-        // Proyecto no ha iniciado
-        scheduleStatus = 'No iniciado';
-        performanceStatus = 'No iniciado';
-        projectStatus = 'No iniciado';
-        scheduleVariance = 0;
-        spi = 0;
-    } else {
-        // Proyecto ha iniciado, calcular métricas basadas en progreso hasta hoy
-        // Calcular variación de cronograma (Actual - Planificado)
-        scheduleVariance = currentActualPct - currentPlannedPct;
-        const scheduleVarianceAbs = Math.abs(scheduleVariance);
-
-        scheduleStatus = 'En tiempo';
-        if (scheduleVariance > 5) {
-            scheduleStatus = 'Adelantado';
-        } else if (scheduleVariance < -5) {
-            scheduleStatus = 'Atrasado';
-        }
-
-        // Calcular índice de rendimiento (SPI) - Schedule Performance Index
-        spi = currentPlannedPct > 0 ? (currentActualPct / currentPlannedPct) : (currentActualPct > 0 ? 1 : 0);
-        performanceStatus = 'Normal';
-        if (spi > 1.1) {
-            performanceStatus = 'Sobrerendimiento';
-        } else if (spi < 0.9) {
-            performanceStatus = 'Subrendimiento';
-        }
-
-        // Determinar estado del proyecto basado en progreso actual
-        projectStatus = 'En tiempo';
-        if (currentActualPct === 100) {
-            projectStatus = 'Finalizado';
-        } else if (currentActualPct > currentPlannedPct) {
-            projectStatus = 'Adelantado';
-        } else if (currentActualPct < currentPlannedPct) {
-            projectStatus = 'Atrasado';
-        }
-    }
-
-    // Actualizar elementos HTML
-    const scheduleVarianceEl = document.getElementById('schedule-variance');
-    const performanceIndexEl = document.getElementById('performance-index');
-    const projectStatusEl = document.getElementById('project-status');
-
-    if (scheduleVarianceEl) {
-        scheduleVarianceEl.textContent = projectHasStarted ? `${scheduleStatus} (${scheduleVariance > 0 ? '+' : ''}${Math.round(scheduleVariance)}%)` : scheduleStatus;
-    }
-    if (performanceIndexEl) {
-        performanceIndexEl.textContent = projectHasStarted ? `${performanceStatus} (SPI: ${spi.toFixed(2)})` : performanceStatus;
-    }
-    if (projectStatusEl) {
-        projectStatusEl.textContent = projectStatus;
-    }
-}
-
 function renderGantt(data) {
     const container = document.getElementById('gantt-chart-container');
     if (!container) return;
@@ -1265,6 +899,30 @@ function renderGantt(data) {
     container.innerHTML = ganttHtml;
 }
 
+
+// Función para calcular y mostrar métricas personalizadas
+function updateAdvancedMetrics(projectData) {
+    if (!projectData || typeof ReportDataBuilder === 'undefined') {
+        console.error("ReportDataBuilder no está disponible o no hay datos del proyecto para calcular métricas avanzadas.");
+        return;
+    }
+
+    try {
+        // Usar ReportDataBuilder como la única fuente de verdad para las métricas.
+        const reportBuilder = new ReportDataBuilder(projectData);
+        const metrics = reportBuilder.getAdvancedMetrics();
+
+        // Actualizar los elementos del DOM con las métricas correctas.
+        document.getElementById('schedule-variance').textContent = metrics.scheduleVariance || '--';
+        document.getElementById('performance-index').textContent = metrics.performanceIndex || '--';
+        document.getElementById('project-status').textContent = metrics.projectStatus || '--';
+
+        console.log("Métricas avanzadas de la interfaz actualizadas:", metrics);
+    } catch (error) {
+        console.error("Error al actualizar las métricas avanzadas:", error);
+    }
+}
+
 // Función auxiliar para aclarar colores
 function lightenColor(color, percent) {
     // Convertir hex a RGB
@@ -1280,165 +938,6 @@ function lightenColor(color, percent) {
 
 function refreshSCurve(data) {
     renderSCurve(data);
-}
-
-window.updateSCurveMetrics = function(data) {
-    // Esta función actualiza las métricas Y la gráfica de curva S cuando cambian los estados de completado
-
-    // Recolectar tareas ordenadas por fecha de fin
-    let tasks = [];
-    if (data.phases && Array.isArray(data.phases)) {
-        data.phases.forEach(phase => {
-            if (phase.tasks && Array.isArray(phase.tasks)) {
-                phase.tasks.map(normalizeTask).forEach(task => tasks.push(task));
-            }
-        });
-    }
-    tasks = tasks.filter(t => t.startDate).sort((a, b) => {
-        const aDate = a.endDate && typeof a.endDate.toDate === 'function' ? a.endDate.toDate() : new Date(a.endDate || a.startDate);
-        const bDate = b.endDate && typeof b.endDate.toDate === 'function' ? b.endDate.toDate() : new Date(b.endDate || b.startDate);
-        return aDate - bDate;
-    });
-
-    if (tasks.length === 0) return;
-
-    // Calcular fechas del proyecto
-    const projectStart = data.startDate && typeof data.startDate.toDate === 'function' ? data.startDate.toDate() : new Date(data.startDate);
-
-    // Generar fechas diarias desde inicio hasta fin del proyecto
-    const projectEnd = tasks[tasks.length - 1].endDate && typeof tasks[tasks.length - 1].endDate.toDate === 'function' ?
-        tasks[tasks.length - 1].endDate.toDate() : new Date(tasks[tasks.length - 1].endDate);
-
-    const dateLabels = [];
-    const currentDate = new Date(projectStart);
-    while (currentDate <= projectEnd) {
-        dateLabels.push(formatDateForInput(currentDate));
-        currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    // Calcular totales del proyecto
-    const totalTasks = tasks.length;
-    const totalHours = tasks.reduce((sum, t) => sum + (parseFloat(t.durationHours) || 0), 0);
-
-    // Calcular progreso PLANIFICADO (basado en fechas)
-    const plannedPercent = [];
-    const plannedHours = [];
-
-    dateLabels.forEach(dateStr => {
-        const currentDate = new Date(dateStr + 'T00:00:00');
-
-        // Calcular tareas que deberían estar completadas HASTA esta fecha
-        let tasksCompletedByDate = 0;
-        let hoursCompletedByDate = 0;
-
-        tasks.forEach(task => {
-            const taskEnd = task.endDate && typeof task.endDate.toDate === 'function' ? task.endDate.toDate() : new Date(task.endDate);
-            if (taskEnd <= currentDate) {
-                tasksCompletedByDate++;
-                hoursCompletedByDate += parseFloat(task.durationHours) || 0;
-            }
-        });
-
-        plannedPercent.push(Math.min(100, (tasksCompletedByDate / totalTasks) * 100));
-        plannedHours.push(Math.min(totalHours, hoursCompletedByDate));
-    });
-
-    // Calcular progreso REAL (basado en tareas completadas)
-    const actualPercent = [];
-    const actualHours = [];
-
-    dateLabels.forEach(dateStr => {
-        const currentDate = new Date(dateStr + 'T00:00:00');
-
-        // Contar tareas realmente completadas hasta esta fecha
-        let actualTasksCompleted = 0;
-        let actualHoursCompleted = 0;
-
-        tasks.forEach(task => {
-            if (task.completed) {
-                const taskEnd = task.endDate && typeof task.endDate.toDate === 'function' ? task.endDate.toDate() : new Date(task.endDate);
-                if (taskEnd <= currentDate) {
-                    actualTasksCompleted++;
-                    actualHoursCompleted += parseFloat(task.durationHours) || 0;
-                }
-            }
-        });
-
-        actualPercent.push(Math.min(100, (actualTasksCompleted / totalTasks) * 100));
-        actualHours.push(Math.min(totalHours, actualHoursCompleted));
-    });
-
-    // Actualizar la gráfica de Chart.js si existe
-    if (sCurveChartInstance) {
-        // Actualizar los datasets de progreso real
-        sCurveChartInstance.data.datasets[1].data = actualPercent; // Real - % Tareas
-        sCurveChartInstance.data.datasets[3].data = actualHours;   // Real - Horas
-
-        // Actualizar la gráfica
-        sCurveChartInstance.update('none'); // 'none' para evitar animaciones que puedan confundir
-    }
-
-    // Actualizar métricas usando el progreso hasta la fecha actual
-    const today = new Date();
-    const todayStr = formatDateForInput(today);
-    const todayIndex = dateLabels.findIndex(dateStr => dateStr >= todayStr);
-    const currentIndex = todayIndex >= 0 ? todayIndex : dateLabels.length - 1;
-
-    const currentPlannedPct = plannedPercent[currentIndex] || 0;
-    const currentActualPct = actualPercent[currentIndex] || 0;
-
-    const projectHasStarted = today >= projectStart || tasks.some(task => task.completed);
-
-    let scheduleStatus, performanceStatus, projectStatus, scheduleVariance, spi;
-
-    if (!projectHasStarted) {
-        scheduleStatus = 'No iniciado';
-        performanceStatus = 'No iniciado';
-        projectStatus = 'No iniciado';
-        scheduleVariance = 0;
-        spi = 0;
-    } else {
-        scheduleVariance = currentActualPct - currentPlannedPct;
-
-        scheduleStatus = 'En tiempo';
-        if (scheduleVariance > 5) {
-            scheduleStatus = 'Adelantado';
-        } else if (scheduleVariance < -5) {
-            scheduleStatus = 'Atrasado';
-        }
-
-        spi = currentPlannedPct > 0 ? (currentActualPct / currentPlannedPct) : (currentActualPct > 0 ? 1 : 0);
-        performanceStatus = 'Normal';
-        if (spi > 1.1) {
-            performanceStatus = 'Sobrerendimiento';
-        } else if (spi < 0.9) {
-            performanceStatus = 'Subrendimiento';
-        }
-
-        projectStatus = 'En tiempo';
-        if (currentActualPct === 100) {
-            projectStatus = 'Finalizado';
-        } else if (currentActualPct > currentPlannedPct) {
-            projectStatus = 'Adelantado';
-        } else if (currentActualPct < currentPlannedPct) {
-            projectStatus = 'Atrasado';
-        }
-    }
-
-    // Actualizar elementos HTML
-    const scheduleVarianceEl = document.getElementById('schedule-variance');
-    const performanceIndexEl = document.getElementById('performance-index');
-    const projectStatusEl = document.getElementById('project-status');
-
-    if (scheduleVarianceEl) {
-        scheduleVarianceEl.textContent = projectHasStarted ? `${scheduleStatus} (${scheduleVariance > 0 ? '+' : ''}${Math.round(scheduleVariance)}%)` : scheduleStatus;
-    }
-    if (performanceIndexEl) {
-        performanceIndexEl.textContent = projectHasStarted ? `${performanceStatus} (SPI: ${spi.toFixed(2)})` : performanceStatus;
-    }
-    if (projectStatusEl) {
-        projectStatusEl.textContent = projectStatus;
-    }
 }
 
 function setupBackToProjectsFunctionality() {
@@ -1715,6 +1214,9 @@ function renderProject(data, autoDownload = null, projectId = null) {
     renderSCurve(data);
     renderGantt(data);
 
+    // Calcular y mostrar métricas personalizadas
+    updateAdvancedMetrics(data);
+
     // Configurar funcionalidades
     setTimeout(() => setupDateRecalculation(data), 0);
     setupHolidaysFunctionality(data);
@@ -1729,25 +1231,84 @@ function renderProject(data, autoDownload = null, projectId = null) {
 // Función para configurar el botón de descarga de PDF
 function setupDownloadPDFButton() {
     const downloadBtn = document.getElementById('download-pdf-btn');
-    if (downloadBtn) {
-        // Evitar añadir listeners duplicados
-        if (downloadBtn.hasAttribute('data-listener-attached')) {
+    if (!downloadBtn) return;
+
+    // Clonamos el botón para eliminar todos los event listeners anteriores de forma limpia.
+    // Esta es la técnica más fiable para evitar listeners duplicados o "fantasmas".
+    const newDownloadBtn = downloadBtn.cloneNode(true);
+    downloadBtn.parentNode.replaceChild(newDownloadBtn, downloadBtn);
+
+    // Añadimos el nuevo listener al botón clonado.
+    newDownloadBtn.addEventListener('click', async () => {
+        const params = new URLSearchParams(window.location.search);
+        const projectId = params.get('id');
+        if (!projectId) {
+            console.error('No se encontró el ID del proyecto para generar el PDF.');
+            alert('Error: No se pudo identificar el proyecto.');
             return;
         }
-        downloadBtn.setAttribute('data-listener-attached', 'true');
-
-        downloadBtn.addEventListener('click', () => {
-            const params = new URLSearchParams(window.location.search);
-            const projectId = params.get('id');
-            if (!projectId) {
-                console.error('No se encontró el ID del proyecto para generar el PDF.');
-                alert('Error: No se pudo identificar el proyecto.');
-                return;
+        
+        console.log('[PDF Generation] Preparando datos de Curva S para el generador...');
+        
+        try {
+            // Simplemente calculamos los datos y los pasamos.
+            // El generador de PDF se encargará de crear la imagen del gráfico.
+            const sCurveData = window.calculateSCurveData(currentProjectData);
+            if (!sCurveData || !sCurveData.dateLabels || sCurveData.dateLabels.length === 0) {
+                throw new Error("No se pudieron calcular los datos de la Curva S.");
             }
-            // La variable 'db' se asume que está disponible globalmente desde firebase-init.js
-            exportProjectToPDF(projectId, db);
-        });
+
+            const sCurvePayload = {
+                data: sCurveData
+            };
+
+            console.log('[PDF Generation] Datos de Curva S preparados. Invocando al generador de PDF.');
+            const currentUser = firebase.auth().currentUser; // Obtener el usuario actual
+            await window.exportProjectToPDF(projectId, db, sCurvePayload, currentUser);
+
+        } catch (error) {
+            console.error('Error durante la generación del PDF:', error);
+            alert(`Ocurrió un error al generar el PDF: ${error.message}`);
+        }
+    });
+}
+
+/**
+ * Renderiza la curva S y guarda la instancia del gráfico para su uso posterior.
+ * Esta función reemplaza la lógica que estaba dentro de `renderSCurve`.
+ */
+ function renderSCurve(data) {
+    const sCurveCtx = document.getElementById('s-curve-chart').getContext('2d');
+    const { dateLabels, plannedPercent, actualPercent } = calculateSCurveData(data);
+
+    // Destruir el gráfico anterior si existe para evitar conflictos
+    if (window.myCharts && window.myCharts.sCurveChart) {
+        window.myCharts.sCurveChart.destroy();
     }
+
+    // Guardamos la nueva instancia del gráfico en una variable global.
+    window.myCharts.sCurveChart = new Chart(sCurveCtx, {
+        type: 'line',
+        data: {
+            labels: dateLabels.map(d => new Date(d + 'T00:00:00').toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })),
+            datasets: [
+                { label: 'Plan - % Progreso', data: plannedPercent, borderColor: '#95a5a6', borderDash: [5, 5], tension: 0.2, pointRadius: 0, fill: false },
+                { label: 'Real - % Progreso', data: actualPercent, borderColor: '#3498db', tension: 0.2, pointRadius: 2, fill: false }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true, // Permitir que Chart.js mantenga su relación de aspecto por defecto (2:1)
+            animation: { duration: 500 },
+            plugins: {
+                legend: { position: 'top' },
+                title: { display: true, text: 'Curva S - Plan vs Real', font: { size: 16 } }
+            },
+            scales: {
+                y: { min: 0, max: 100, title: { display: true, text: '% Completado' } }
+            }
+        }
+    });
 }
 
 // Función para configurar interacciones de fases
@@ -1798,11 +1359,9 @@ function setupPhaseInteractions() {
 
 // Función para configurar checkboxes de tareas
 async function setupTaskCheckboxes(data) {
-    const userRole = await getCurrentUserRole();
-    const isAdmin = userRole === 'admin';
-
     document.querySelectorAll('.task-checkbox').forEach(checkbox => {
-        // Evitar agregar listeners duplicados
+        // Salvaguarda para evitar agregar listeners duplicados, lo que podría
+        // causar que el evento se dispare múltiples veces por un solo clic.
         if (checkbox.hasAttribute('data-listener-attached')) {
             return;
         }
@@ -1810,15 +1369,6 @@ async function setupTaskCheckboxes(data) {
 
         const taskIndex = parseInt(checkbox.dataset.taskIndex);
         const phaseIndex = parseInt(checkbox.dataset.phaseIndex);
-        const task = data.phases[phaseIndex]?.tasks[taskIndex];
-        const isCompleted = task?.completed || false;
-
-        // Deshabilitar checkboxes de tareas completadas para usuarios no admin
-        if (isCompleted && !isAdmin) {
-            checkbox.disabled = true;
-            checkbox.style.opacity = '0.5';
-            checkbox.title = 'Solo los administradores pueden desmarcar tareas completadas';
-        }
 
         checkbox.addEventListener('change', async (e) => {
             const isCompletedNow = e.target.checked;
@@ -1826,6 +1376,9 @@ async function setupTaskCheckboxes(data) {
             // Obtener el usuario actual al inicio del handler
             const user = firebase.auth().currentUser;
 
+            // Obtener el rol del usuario para verificar permisos
+            const userRole = await getCurrentUserRole();
+            const isAdmin = userRole === 'admin';
             // Verificar permisos para desmarcar tareas completadas
             if (!isCompletedNow) {
                 if (!isAdmin) {
@@ -1844,9 +1397,10 @@ async function setupTaskCheckboxes(data) {
             }
 
             try {
+                let task; // Declarar la variable task aquí para que esté disponible en todo el bloque try
                 // Actualizar el estado de la tarea en los datos locales
                 if (data.phases && data.phases[phaseIndex] && data.phases[phaseIndex].tasks && data.phases[phaseIndex].tasks[taskIndex]) {
-                    const task = data.phases[phaseIndex].tasks[taskIndex];
+                    task = data.phases[phaseIndex].tasks[taskIndex];
                     task.completed = isCompletedNow;
 
                     if (isCompletedNow) {
@@ -1876,7 +1430,7 @@ async function setupTaskCheckboxes(data) {
                 // Enviar notificación de tarea completada si se marcó como completada
                 if (isCompletedNow) {
                     try {
-                        await notificationService.notifyTaskCompleted(currentProjectData, task, user);
+                        await notificationService.notifyTaskCompleted(currentProjectData, task, user); // Ahora 'task' es accesible
                         console.log('Notificación de tarea completada enviada exitosamente');
                     } catch (notificationError) {
                         console.error('Error al enviar notificación de tarea completada:', notificationError);
@@ -1893,8 +1447,11 @@ async function setupTaskCheckboxes(data) {
                 // Actualizar calendario y métricas de curva S (más eficiente que volver a renderizar toda la gráfica)
                 renderCalendar(data);
                 setupCalendarInteractions(data);
-                updateSCurveMetrics(data);
+                renderSCurve(data); // Re-renderizar la curva S para reflejar el cambio
                 renderGantt(data);
+
+                // Recalcular y mostrar las métricas personalizadas
+                updateAdvancedMetrics(data);
 
             } catch (error) {
                 console.error('Error al actualizar el estado de la tarea:', error);
@@ -1938,28 +1495,6 @@ function sanitizeHolidays(holidays) {
         date: h.date.trim(),
         name: (h.name || '').trim()
     }));
-}
-
-// Normaliza y valida una tarea para asegurar fechas y horas válidas
-function normalizeTask(raw) {
-    function toDate(val) {
-        if (!val) return null;
-        if (val instanceof Date) return val;
-        if (typeof val.toDate === 'function') return val.toDate();
-        const d = new Date(val);
-        return isNaN(d.getTime()) ? null : d;
-    }
-    const startDate = toDate(raw.startDate);
-    const endDate = toDate(raw.endDate);
-    const startTime = typeof raw.startTime === 'string' && /^\d{2}:\d{2}$/.test(raw.startTime) ? raw.startTime : '--:--';
-    const endTime = typeof raw.endTime === 'string' && /^\d{2}:\d{2}$/.test(raw.endTime) ? raw.endTime : '--:--';
-    return {
-        ...raw,
-        startDate,
-        endDate,
-        startTime,
-        endTime
-    };
 }
 
 // Convierte un string o Date a yyyy-MM-dd para input type=date
@@ -2061,13 +1596,18 @@ function calculateAllTaskDates(projectData) {
 
 // Mueve una fecha al siguiente momento laborable
 function moveToNextWorkableMoment(date, options) {
+    // Esta función es crucial para el cálculo de cronogramas.
+    // Asegura que cualquier fecha de inicio o fin caiga dentro de un día y hora laborable.
     let newDate = new Date(date);
 
+    // Si la hora actual es después del fin del turno (considerando el descanso),
+    // mover al inicio del siguiente día laborable.
     if (newDate.getHours() >= (options.shiftEndHour - options.shiftBreakHours)) {
         newDate.setDate(newDate.getDate() + 1);
         newDate.setHours(options.shiftStartHour, 0, 0, 0);
     }
 
+    // Avanzar día por día hasta encontrar uno que no sea fin de semana ni festivo.
     while (!isWorkDay(newDate, options)) {
         newDate.setDate(newDate.getDate() + 1);
         newDate.setHours(options.shiftStartHour, 0, 0, 0);
@@ -2077,6 +1617,7 @@ function moveToNextWorkableMoment(date, options) {
         newDate.setHours(options.shiftStartHour, 0, 0, 0);
     }
 
+    // Si la hora cae dentro del horario de descanso, moverla al final del descanso.
     if ((newDate.getHours() > options.shiftBreakStartHour || (newDate.getHours() === options.shiftBreakStartHour && newDate.getMinutes() >= options.shiftBreakStartMin)) &&
         (newDate.getHours() < options.shiftBreakEndHour || (newDate.getHours() === options.shiftBreakEndHour && newDate.getMinutes() < options.shiftBreakEndMin))) {
         newDate.setHours(options.shiftBreakEndHour, options.shiftBreakEndMin, 0, 0);
@@ -2087,6 +1628,9 @@ function moveToNextWorkableMoment(date, options) {
 
 // Calcula la fecha de fin de una tarea basada en duración y opciones
 function getEndDate(startDate, durationHours, options) {
+    // Esta función calcula la fecha de fin de una tarea sumando las horas de duración
+    // a la fecha de inicio, pero saltando los tiempos no laborables (noches, fines de semana,
+    // festivos y descansos).
     const duration = Number(durationHours);
     if (!isFinite(duration) || duration < 0) {
         return new Date(startDate);
@@ -2099,28 +1643,35 @@ function getEndDate(startDate, durationHours, options) {
     let remainingMinutes = Math.round(duration * 60);
     let currentDate = new Date(startDate);
 
+    // Bucle que consume los minutos de duración restantes.
     while (remainingMinutes > 0) {
+        // Asegurarse de que estamos en un momento laborable para empezar a contar.
         currentDate = moveToNextWorkableMoment(currentDate, options);
 
         const currentHour = currentDate.getHours();
         const currentMinute = currentDate.getMinutes();
         const effectiveEndHour = options.shiftEndHour;
+        // Calcular cuántos minutos laborables quedan en el día actual.
         let minutesLeftInDay = (effectiveEndHour - currentHour) * 60 - currentMinute;
 
+        // Si aún no hemos pasado el descanso, restar la duración del descanso.
         if (currentHour < options.shiftBreakStartHour && options.shiftBreakEndHour < effectiveEndHour) {
             minutesLeftInDay -= options.shiftBreakHours * 60;
         }
 
+        // Si estamos en medio del descanso, no quedan minutos laborables en ese momento.
         if (currentHour >= options.shiftBreakStartHour && currentHour < options.shiftBreakEndHour) {
             minutesLeftInDay = 0;
         }
 
+        // Si no quedan minutos en el día, saltar al inicio del siguiente día laborable.
         if (minutesLeftInDay <= 0) {
             currentDate.setDate(currentDate.getDate() + 1);
             currentDate.setHours(options.shiftStartHour, 0, 0, 0);
             continue;
         }
 
+        // Consumir los minutos. O todos los que quedan en el día, o los que faltan para la tarea.
         const minutesToConsume = Math.min(remainingMinutes, minutesLeftInDay);
         currentDate.setMinutes(currentMinute + minutesToConsume);
         remainingMinutes -= minutesToConsume;
@@ -2128,7 +1679,6 @@ function getEndDate(startDate, durationHours, options) {
 
     return currentDate;
 }
-
 
     // Variable global para almacenar los datos del proyecto
     let currentProjectData = null;
