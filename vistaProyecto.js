@@ -1646,7 +1646,9 @@ console.log('Cargando festivos:', holidays);
 
     projectData.phases.forEach(phase => {
         phase.tasks.forEach(task => {
-            const taskStartDate = new Date(lastEndDate);
+            // Asegurarse de que la fecha de inicio de la nueva tarea sea un momento laborable.
+            // Esto corrige el caso donde una tarea termina justo cuando empieza un descanso.
+            const taskStartDate = moveToNextWorkableMoment(new Date(lastEndDate), options);
             task.startDate = firebase.firestore.Timestamp.fromDate(taskStartDate);
             task.startTime = taskStartDate.getHours().toString().padStart(2, '0') + ':' + taskStartDate.getMinutes().toString().padStart(2, '0');
 
@@ -1715,18 +1717,21 @@ console.log('Cargando festivos:', holidays);
 
         const currentHour = currentDate.getHours();
         const currentMinute = currentDate.getMinutes();
-        const effectiveEndHour = options.shiftEndHour;
+        let effectiveEndHour = options.shiftEndHour;
+
+        // Si la hora actual es antes del descanso, y el descanso se extiende hasta o más allá del fin del turno,
+        // la hora de fin efectiva es la hora de inicio del descanso.
+        if (currentHour < options.shiftBreakStartHour && options.shiftBreakEndHour >= options.shiftEndHour) {
+            effectiveEndHour = options.shiftBreakStartHour;
+        }
+
         // Calcular cuántos minutos laborables quedan en el día actual.
         let minutesLeftInDay = (effectiveEndHour - currentHour) * 60 - currentMinute;
 
         // Si aún no hemos pasado el descanso, restar la duración del descanso.
-        if (currentHour < options.shiftBreakStartHour && options.shiftBreakEndHour < effectiveEndHour) {
+        // Esta condición ahora es más precisa.
+        if (currentHour < options.shiftBreakStartHour && options.shiftBreakEndHour < options.shiftEndHour) {
             minutesLeftInDay -= options.shiftBreakHours * 60;
-        }
-
-        // Si estamos en medio del descanso, no quedan minutos laborables en ese momento.
-        if (currentHour >= options.shiftBreakStartHour && currentHour < options.shiftBreakEndHour) {
-            minutesLeftInDay = 0;
         }
 
         // Si no quedan minutos en el día, saltar al inicio del siguiente día laborable.
