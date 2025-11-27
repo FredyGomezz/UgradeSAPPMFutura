@@ -135,24 +135,27 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    
-    <!-- Configuración centralizada de Firebase -->
-    <script src="config/firebase.js"></script>
 
     <script>
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+        function initializeApp(firebaseApp) {
+            const auth = firebaseApp.auth();
+            const db = firebaseApp.firestore();
 
-        auth.onAuthStateChanged(user => {
-            if (user && user.email === 'admin@gnce.com') {
-                document.getElementById('main-content').style.display = 'block';
-            } else {
-                alert('Acceso denegado. Solo los administradores pueden acceder a esta página.');
-                window.location.href = 'proyectos.html';
-            }
-        });
+            auth.onAuthStateChanged(user => {
+                if (user && user.email === 'admin@gnce.com') {
+                    document.getElementById('main-content').style.display = 'block';
+                } else {
+                    // Espera un poco antes de redirigir para evitar falsos negativos durante la carga
+                    setTimeout(() => {
+                        if (!auth.currentUser || auth.currentUser.email !== 'admin@gnce.com') {
+                            alert('Acceso denegado. Solo los administradores pueden acceder a esta página.');
+                            window.location.href = 'proyectos.html';
+                        }
+                    }, 500);
+                }
+            });
 
-        document.getElementById('generate-template').addEventListener('click', () => {
+            document.getElementById('generate-template').addEventListener('click', () => {
             // Crear un nuevo workbook
             const wb = XLSX.utils.book_new();
             
@@ -180,10 +183,24 @@
                 ['• 4 horas = medio día'],
                 ['• 16 horas = 2 días laborales'],
                 ['• 2.5 horas = 2 horas y 30 minutos'],
+                [''],
+                ['🗓️ INSTRUCCIONES PARA FESTIVOS:'],
+                ['• Use el formato AAAA-MM-DD para las fechas (ej. 2024-12-31).'],
+                ['• El nombre del festivo es opcional pero recomendado.'],
+                ['• Si no necesita cargar festivos, puede dejar esta hoja vacía o eliminarla.'],
                 ['']
+            ];
+
+            // Crear la hoja de Festivos
+            const currentYear = new Date().getFullYear();
+            const holidaysData = [
+                ['FechaFestivo', 'NombreFestivo'],
+                [`${currentYear}-01-01`, 'Año Nuevo'],
+                [`${currentYear}-12-25`, 'Navidad']
             ];
             
             const instructionsWS = XLSX.utils.aoa_to_sheet(instructionsData);
+            const holidaysWS = XLSX.utils.aoa_to_sheet(holidaysData);
             
             // Crear la hoja de plantilla
             const templateData = [
@@ -216,6 +233,7 @@
             
             // Configurar anchos de columna para mejor visualización
             instructionsWS['!cols'] = [{ width: 60 }];
+            holidaysWS['!cols'] = [{ width: 20 }, { width: 40 }];
             templateWS['!cols'] = [
                 { width: 40 }, // Columna Tarea
                 { width: 18 }, // Columna Duración
@@ -225,6 +243,7 @@
             // Agregar las hojas al workbook
             XLSX.utils.book_append_sheet(wb, instructionsWS, 'Instrucciones');
             XLSX.utils.book_append_sheet(wb, templateWS, 'Plantilla Proyecto');
+            XLSX.utils.book_append_sheet(wb, holidaysWS, 'Festivos');
             
             // Generar el archivo Excel
             const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
@@ -246,8 +265,7 @@
             setTimeout(() => URL.revokeObjectURL(url), 100);
         });
 
-        // --- Project Loading Logic ---
-        document.getElementById('load-project').addEventListener('click', async () => {
+            document.getElementById('load-project').addEventListener('click', async () => {
             const projectName = document.getElementById('project-name').value;
             const projectDescription = document.getElementById('project-description').value;
             const startDateInput = document.getElementById('project-start-date').valueAsDate;
@@ -266,6 +284,7 @@
 
             try {
                 let json;
+                let workbook; // Declarar workbook aquí para que esté disponible en todo el bloque try
                 
                 const fileName = projectFile.name.toLowerCase();
                 const isCSV = fileName.endsWith('.csv');
@@ -276,7 +295,7 @@
                     if (text.includes('�')) {
                         text = new TextDecoder('windows-1252').decode(arrayBuffer);
                     }
-                    const workbook = XLSX.read(text, { type: 'string' });
+                    workbook = XLSX.read(text, { type: 'string' });
                     const sheetName = workbook.SheetNames.find(name => name.toLowerCase().includes('plantilla proyecto'));
                     if (!sheetName) {
                         throw new Error("No se encontró la hoja 'Plantilla Proyecto' en el archivo Excel. Asegúrese de usar la plantilla generada por la herramienta.");
@@ -285,7 +304,7 @@
                     json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
                 } else {
                     const data = await projectFile.arrayBuffer();
-                    const workbook = XLSX.read(data);
+                    workbook = XLSX.read(data);
                     console.log('Hojas encontradas en el archivo:', workbook.SheetNames);
                     const sheetName = workbook.SheetNames.find(name => name.toLowerCase().includes('plantilla proyecto'));
                     if (!sheetName) {
@@ -293,6 +312,28 @@
                     }
                     const worksheet = workbook.Sheets[sheetName];
                     json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                }
+
+                // --- Lógica para leer la hoja de Festivos ---
+                const projectHolidays = [];
+                const holidaysSheetName = workbook.SheetNames.find(name => name.toLowerCase().includes('festivos'));
+                if (holidaysSheetName) {
+                    console.log('Hoja de Festivos encontrada. Procesando...');
+                    const holidaysWorksheet = workbook.Sheets[holidaysSheetName];
+                    // Usar `defval: ''` para que las celdas vacías no se omitan
+                    const holidaysJson = XLSX.utils.sheet_to_json(holidaysWorksheet, { defval: '' });
+
+                    holidaysJson.forEach(holiday => {
+                        const fecha = holiday.FechaFestivo;
+                        const nombre = holiday.NombreFestivo || 'Festivo';
+
+                        // Validar que la fecha exista
+                        if (fecha) {
+                            // XLSX puede leer fechas como números (días desde 1900). Convertimos a formato yyyy-mm-dd.
+                            const formattedDate = typeof fecha === 'number' ? XLSX.SSF.format('yyyy-mm-dd', fecha) : new Date(fecha).toISOString().split('T')[0];
+                            projectHolidays.push({ date: formattedDate, name: nombre });
+                        }
+                    });
                 }
 
                 const headerRow = json.find(row => row && row.some(cell => {
@@ -341,7 +382,7 @@
                     settings: {
                         skipSaturday: true,
                         skipSunday: true,
-                        holidays: []
+                            holidays: projectHolidays // Usar los festivos cargados del Excel
                     }
                 };
 
@@ -368,7 +409,7 @@
                         const task = {
                             name: row[colIndices.name] || '',
                             durationHours: isFinite(parsedDuration) && parsedDuration >= 0 ? parsedDuration : 0,
-                            isMilestone: (String(row[colIndices.isMilestone] || '').toLowerCase() === 'x')
+                            isMilestone: (String(row[colIndices.isMilestone] || '').trim().toLowerCase() === 'x')
                         };
                         currentPhase.tasks.push(task);
                     }
@@ -552,6 +593,18 @@
 
             return currentDate;
         }
+        }
+    </script>
+
+    <!-- Carga e inicialización de Firebase -->
+    <script>
+        const script = document.createElement('script');
+        script.src = 'firebase-init.js';
+        script.onload = () => {
+            // La función initializeFirebaseApp ahora está disponible globalmente desde firebase.js
+            initializeFirebaseApp(initializeApp);
+        };
+        document.head.appendChild(script);
     </script>
 </body>
 </html>

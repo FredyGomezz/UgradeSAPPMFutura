@@ -11,9 +11,19 @@ const firebaseConfig = {
   measurementId: "G-RNZF81BCWP"
 };
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+// Esta función se hará global para ser llamada desde los HTML
+function initializeFirebaseApp(onReadyCallback) {
+    let firebaseApp;
+    try {
+        // Intenta obtener la app existente para evitar reinicializar
+        firebaseApp = firebase.app(); 
+    } catch (e) {
+        // Si no existe, inicialízala
+        firebaseApp = firebase.initializeApp(firebaseConfig); 
+    }
 
-// Export Firebase services
-const auth = firebase.auth();
-const db = firebase.firestore();
+    // Si se proporciona un callback, ejecútalo con la instancia de la app
+    if (typeof onReadyCallback === 'function') {
+        onReadyCallback(firebaseApp);
+    }
+}

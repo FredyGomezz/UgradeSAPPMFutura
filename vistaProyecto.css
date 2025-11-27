@@ -135,6 +135,62 @@ body {
     border-left: 4px solid #007bff;
 }
 
+.config-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+
+.toggle-config-btn {
+    background: none;
+    border: none;
+    color: #6c757d;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.toggle-section-btn {
+    background: none;
+    border: none;
+    color: #6c757d;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.toggle-section-btn:hover,
+.toggle-config-btn:hover {
+    background: #e9ecef;
+    color: #007bff;
+}
+
+.toggle-section-btn i,
+.toggle-config-btn:hover {
+    background: #e9ecef;
+    color: #007bff;
+}
+
+.toggle-config-btn i {
+    transition: transform 0.3s ease;
+}
+
+.toggle-section-btn i.rotated,
+.toggle-config-btn i.rotated {
+    transform: rotate(180deg);
+}
 .project-dates-interactive h3 {
     color: #495057;
     margin-bottom: 20px;
@@ -147,6 +203,19 @@ body {
     gap: 25px;
     margin-bottom: 20px;
 }
+
+.project-config.collapsed {
+    display: none;
+}
+
+#calendar-content-wrapper.collapsed {
+    display: none;
+}
+
+.project-config.collapsed + .date-info {
+    border-top: none; /* Evitar doble borde cuando está colapsado */
+}
+
 
 .config-group {
     background: white;
@@ -586,6 +655,10 @@ body {
     background: #dee2e6;
     border-radius: 8px;
     overflow: hidden;
+}
+
+.calendar-grid.collapsed {
+    display: none;
 }
 
 .calendar-day-header {

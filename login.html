@@ -244,11 +244,12 @@
     <script src="notification-service.js"></script>
 
     <script>
+        function initializeApp(firebaseApp) {
+            const auth = firebaseApp.auth();
+            const db = firebaseApp.firestore();
 
-
-        // Inicializar servicio de notificaciones
-        const notificationService = initializeNotificationService(db);
-
+            // Inicializar servicio de notificaciones
+            const notificationService = initializeNotificationService(db);
         const loginForm = document.getElementById('login-form');
         const registerForm = document.getElementById('register-form');
         const emailInput = document.getElementById('email');
@@ -429,6 +430,15 @@
                     errorMessage.textContent = 'Si existe una cuenta para este correo, se ha enviado un enlace para restablecer la contraseña.';
                 });
         });
+        }
+
+        // Carga dinámica de firebase-init.js y ejecución del callback
+        const script = document.createElement('script');
+        script.src = 'firebase-init.js';
+        script.onload = () => {
+            initializeFirebaseApp(initializeApp);
+        };
+        document.head.appendChild(script);
 
     </script>
 </body>

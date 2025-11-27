@@ -1,16 +1,18 @@
-// Las instancias de 'firebase', 'auth' y 'db' ahora se asumen
-// que están disponibles globalmente gracias a firebase-init.js
+// Variables globales para este script, se inicializarán desde vistaProyecto.html
+let db;
+let auth;
+let notificationService;
 
-// const db = firebase.firestore(); // Eliminado para evitar redeclaración
+window.initializeProjectView = (dbInstance, authInstance, notificationServiceInstance) => {
+    db = dbInstance;
+    auth = authInstance;
+    notificationService = notificationServiceInstance;
 
-// Inicializar servicio de notificaciones
-const notificationService = initializeNotificationService(db);
+    // Objeto global para almacenar instancias de gráficos. Se inicializa aquí para estar disponible en todo el script.
+    window.myCharts = {};
 
-// Objeto global para almacenar instancias de gráficos. Se inicializa aquí para estar disponible en todo el script.
-window.myCharts = {};
-
-// Función para obtener el rol del usuario actual
-async function getCurrentUserRole() {
+    // Función para obtener el rol del usuario actual
+    async function getCurrentUserRole() {
     try {
         const user = firebase.auth().currentUser;
         if (!user) return null;
@@ -29,10 +31,10 @@ async function getCurrentUserRole() {
         console.error('Error obteniendo rol del usuario:', error);
         return 'user'; // Rol por defecto en caso de error
     }
-}
+    }
 
-// Función mejorada para cargar la configuración del proyecto
-async function loadProjectConfig(data) {
+    // Función mejorada para cargar la configuración del proyecto
+    async function loadProjectConfig(data) {
     console.log('Cargando configuración del proyecto:', data);
     
     // Obtener el rol del usuario actual
@@ -99,10 +101,10 @@ async function loadProjectConfig(data) {
 
 // Mostrar/ocultar lista de festivos según el checkbox
 toggleHolidaysList();
-}
+    }
 
-// Función mejorada para formatear fechas de manera segura
-function safeDateFormatForDisplay(dateValue) {
+    // Función mejorada para formatear fechas de manera segura
+    function safeDateFormatForDisplay(dateValue) {
     if (!dateValue) return '--';
     
     try { // Usar la función global parseDate
@@ -118,10 +120,10 @@ function safeDateFormatForDisplay(dateValue) {
         console.warn('Error formateando fecha:', dateValue, error);
         return '--';
     }
-}
+    }
 
-// Función mejorada para formatear fechas con horas
-function safeDateTimeFormatForDisplay(dateValue) {
+    // Función mejorada para formatear fechas con horas
+    function safeDateTimeFormatForDisplay(dateValue) {
     if (!dateValue) return '--';
     
     try {
@@ -144,10 +146,10 @@ function safeDateTimeFormatForDisplay(dateValue) {
         console.warn('Error formateando fecha y hora:', dateValue, error);
         return '--';
     }
-}
+    }
 
-// Función mejorada para cargar festivos
-function loadHolidays(holidays, isAdmin = true) {
+    // Función mejorada para cargar festivos
+    function loadHolidays(holidays, isAdmin = true) {
 // Solo gestiona la visualización y edición de festivos
 const container = document.getElementById('holidays-container');
 if (!container) {
@@ -195,10 +197,10 @@ console.log('Cargando festivos:', holidays);
     holidayItem.appendChild(button);
     container.appendChild(holidayItem);
 });
-}
+    }
 
-// Función para mostrar/ocultar la lista de festivos
-function toggleHolidaysList() {
+    // Función para mostrar/ocultar la lista de festivos
+    function toggleHolidaysList() {
     const includeHolidaysCheckbox = document.getElementById('include-holidays');
     const holidaysList = document.getElementById('holidays-list');
     
@@ -212,10 +214,10 @@ function toggleHolidaysList() {
             holidaysList.style.display = this.checked ? 'block' : 'none';
         });
     }
-}
+    }
 
-// Función para configurar la funcionalidad de festivos
-async function setupHolidaysFunctionality(data) {
+    // Función para configurar la funcionalidad de festivos
+    async function setupHolidaysFunctionality(data) {
     const addHolidayBtn = document.getElementById('add-holiday-btn');
     if (addHolidayBtn) {
         const userRole = await getCurrentUserRole();
@@ -229,10 +231,10 @@ async function setupHolidaysFunctionality(data) {
             });
         }
     }
-}
+    }
 
-// Función para agregar un nuevo festivo
-function addNewHolidayItem() {
+    // Función para agregar un nuevo festivo
+    function addNewHolidayItem() {
     const container = document.getElementById('holidays-container');
     if (!container) return;
     const index = container.children.length;
@@ -244,9 +246,7 @@ function addNewHolidayItem() {
         '<button type="button" onclick="removeHolidayItem(this)">Eliminar</button>';
     container.appendChild(holidayItem);
 }
-
-// Función para eliminar un festivo
-function removeHolidayItem(button) {
+    window.removeHolidayItem = function(button) {
     button.parentElement.remove();
     // Reindexar los elementos restantes
     const container = document.getElementById('holidays-container');
@@ -255,10 +255,10 @@ function removeHolidayItem(button) {
         const inputs = item.querySelectorAll('input');
         inputs.forEach(input => input.setAttribute('data-index', index));
     });
-}
+    }
 
-// Función para actualizar estadísticas de progreso
-window.updateProgressStats = function(data) {
+    // Función para actualizar estadísticas de progreso
+    window.updateProgressStats = function(data) {
     // Recalcular estadísticas
     let totalTasks = 0;
     let totalHours = 0;
@@ -291,10 +291,10 @@ window.updateProgressStats = function(data) {
     const progressPercentage = totalHours > 0 ? (completedHours / totalHours) * 100 : 0;
     document.getElementById('overall-progress').style.width = progressPercentage + '%';
     document.getElementById('progress-text').textContent = Math.round(progressPercentage) + '%';
-}
+    }
 
-// Función para guardar el proyecto en Firebase
-async function saveProject(data) {
+    // Función para guardar el proyecto en Firebase
+    async function saveProject(data) {
     const params = new URLSearchParams(window.location.search);
     const projectId = params.get('id');
     
@@ -313,10 +313,10 @@ async function saveProject(data) {
         console.error('Error al guardar el proyecto:', error);
         throw error;
     }
-}
+    }
 
-// Placeholder functions para componentes que faltan
-function renderCalendar(data) {
+    // Placeholder functions para componentes que faltan
+    function renderCalendar(data) {
     // Obtener el contenedor del calendario al inicio
     const calendarContainer = document.getElementById('calendar-container');
     if (!calendarContainer) return;
@@ -419,7 +419,14 @@ function renderCalendar(data) {
         const firstWeekDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1; // Lunes=0
         const daysInMonth = lastDay.getDate();
 
-        calendarHtml += `<div class="month-container"><div class="month-header">${monthNames[month]} ${year}</div><div class="calendar-grid">`;
+        calendarHtml += `<div class="month-container">
+            <div class="month-header collapsible" data-month-index="${month}">
+                <span>${monthNames[month]} ${year}</span>
+                <button class="toggle-section-btn" aria-label="Contraer o expandir mes">
+                    <i class="fas fa-chevron-up rotated"></i>
+                </button>
+            </div>
+            <div class="calendar-grid collapsed" id="month-grid-${month}">`;
         const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
         weekDays.forEach(d => calendarHtml += `<div class="calendar-day-header">${d}</div>`);
 
@@ -597,15 +604,30 @@ function renderCalendar(data) {
             }
         });
     });
-}
+    }
 
-function setupCalendarInteractions(data) {
-    console.log('Configurando interacciones del calendario');
-    // Implementación de interacciones del calendario
-}
+    function setupCalendarInteractions(data) {
+    // Configurar el colapso/expansión de cada mes
+    document.querySelectorAll('.month-header.collapsible').forEach(header => {
+        header.addEventListener('click', () => {
+            const monthIndex = header.dataset.monthIndex;
+            const grid = document.getElementById(`month-grid-${monthIndex}`);
+            const icon = header.querySelector('i');
+
+            if (grid && icon) {
+                const isCollapsed = grid.classList.toggle('collapsed');
+                if (isCollapsed) {
+                    icon.classList.add('rotated');
+                } else {
+                    icon.classList.remove('rotated');
+                }
+            }
+        });
+    });
+    }
 
 
-function renderGantt(data) {
+    function renderGantt(data) {
     const container = document.getElementById('gantt-chart-container');
     if (!container) return;
 
@@ -897,11 +919,11 @@ function renderGantt(data) {
         </div>`;
 
     container.innerHTML = ganttHtml;
-}
+    }
 
 
-// Función para calcular y mostrar métricas personalizadas
-function updateAdvancedMetrics(projectData) {
+    // Función para calcular y mostrar métricas personalizadas
+    function updateAdvancedMetrics(projectData) {
     if (!projectData || typeof ReportDataBuilder === 'undefined') {
         console.error("ReportDataBuilder no está disponible o no hay datos del proyecto para calcular métricas avanzadas.");
         return;
@@ -921,10 +943,10 @@ function updateAdvancedMetrics(projectData) {
     } catch (error) {
         console.error("Error al actualizar las métricas avanzadas:", error);
     }
-}
+    }
 
-// Función auxiliar para aclarar colores
-function lightenColor(color, percent) {
+    // Función auxiliar para aclarar colores
+    function lightenColor(color, percent) {
     // Convertir hex a RGB
     const num = parseInt(color.replace("#", ""), 16);
     const amt = Math.round(2.55 * percent * 100);
@@ -935,32 +957,32 @@ function lightenColor(color, percent) {
         (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
         (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
 }
-
-function refreshSCurve(data) {
+    
+    function refreshSCurve(data) {
     renderSCurve(data);
-}
+    }
 
-function setupBackToProjectsFunctionality() {
+    function setupBackToProjectsFunctionality() {
     const backBtn = document.getElementById('back-to-projects-btn');
     if (backBtn) {
         backBtn.addEventListener('click', function() {
             window.location.href = 'proyectos.html';
         });
     }
-}
+    }
 
-function setupLogoutFunctionality() {
+    function setupLogoutFunctionality() {
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function() {
-            firebase.auth().signOut().then(() => {
+            auth.signOut().then(() => {
                 window.location.href = 'index.html';
             });
         });
     }
-}
+    }
 
-function setupDateRecalculation(data) {
+    function setupDateRecalculation(data) {
     const recalculateBtn = document.getElementById('recalculate-dates-btn');
     if (recalculateBtn) {
         // Verificar rol del usuario y deshabilitar botón si no es admin
@@ -1049,10 +1071,10 @@ function setupDateRecalculation(data) {
             }
         });
     }
-}
+    }
 
-// Función mejorada para renderizar el proyecto
-function renderProject(data, autoDownload = null, projectId = null) {
+    // Función mejorada para renderizar el proyecto
+    function renderProject(data, autoDownload = null, projectId = null) {
     console.log('Renderizando proyecto con datos:', data);
     if (!data) {
         console.error('No hay datos para renderizar');
@@ -1222,14 +1244,57 @@ function renderProject(data, autoDownload = null, projectId = null) {
     setupHolidaysFunctionality(data);
     setupBackToProjectsFunctionality();
     setupLogoutFunctionality();
+    setupCalendarToggle(); // Añadir la configuración del botón de colapso del calendario
+    setupConfigToggle(); // Añadir la configuración del botón de colapso
     setupDownloadPDFButton(); // Añadir la configuración del botón de PDF
 
     console.log('Proyecto renderizado exitosamente');
-}
+    }
 
+    // Función para configurar el colapso del calendario principal
+    function setupCalendarToggle() {
+    const toggleBtn = document.getElementById('toggle-calendar-btn');
+    const calendarWrapper = document.getElementById('calendar-content-wrapper');
+    const icon = toggleBtn.querySelector('i');
 
-// Función para configurar el botón de descarga de PDF
-function setupDownloadPDFButton() {
+    if (toggleBtn && calendarWrapper && icon) {
+        // Estado inicial contraído
+        icon.classList.add('rotated');
+
+        toggleBtn.parentElement.addEventListener('click', () => {
+            const isCollapsed = calendarWrapper.classList.toggle('collapsed');
+            if (isCollapsed) {
+                icon.classList.add('rotated');
+            } else {
+                icon.classList.remove('rotated');
+            }
+        });
+    }
+    }
+
+    // Función para configurar el botón de colapsar/expandir la configuración
+    function setupConfigToggle() {
+    const toggleBtn = document.getElementById('toggle-config-btn');
+    const configContent = document.getElementById('project-config-content');
+    const icon = toggleBtn.querySelector('i');
+
+    if (toggleBtn && configContent && icon) {
+        // Estado inicial contraído
+        icon.style.transform = 'rotate(180deg)';
+
+        toggleBtn.parentElement.addEventListener('click', () => {
+            const isCollapsed = configContent.classList.toggle('collapsed');
+            
+            // Actualizar el icono
+            if (isCollapsed) {
+                icon.style.transform = 'rotate(180deg)';
+            }
+        });
+    }
+    }
+
+    // Función para configurar el botón de descarga de PDF
+    function setupDownloadPDFButton() {
     const downloadBtn = document.getElementById('download-pdf-btn');
     if (!downloadBtn) return;
 
@@ -1263,7 +1328,7 @@ function setupDownloadPDFButton() {
             };
 
             console.log('[PDF Generation] Datos de Curva S preparados. Invocando al generador de PDF.');
-            const currentUser = firebase.auth().currentUser; // Obtener el usuario actual
+            const currentUser = auth.currentUser; // Obtener el usuario actual
             await window.exportProjectToPDF(projectId, db, sCurvePayload, currentUser);
 
         } catch (error) {
@@ -1271,13 +1336,13 @@ function setupDownloadPDFButton() {
             alert(`Ocurrió un error al generar el PDF: ${error.message}`);
         }
     });
-}
+    }
 
 /**
  * Renderiza la curva S y guarda la instancia del gráfico para su uso posterior.
  * Esta función reemplaza la lógica que estaba dentro de `renderSCurve`.
  */
- function renderSCurve(data) {
+    function renderSCurve(data) {
     const sCurveCtx = document.getElementById('s-curve-chart').getContext('2d');
     const { dateLabels, plannedPercent, actualPercent } = calculateSCurveData(data);
 
@@ -1309,10 +1374,10 @@ function setupDownloadPDFButton() {
             }
         }
     });
-}
+    }
 
-// Función para configurar interacciones de fases
-function setupPhaseInteractions() {
+    // Función para configurar interacciones de fases
+    function setupPhaseInteractions() {
     document.querySelectorAll('.phase-header').forEach(header => {
         header.addEventListener('click', (e) => {
             const phaseEl = header.parentElement;
@@ -1355,10 +1420,10 @@ function setupPhaseInteractions() {
             }
         });
     });
-}
+    }
 
-// Función para configurar checkboxes de tareas
-async function setupTaskCheckboxes(data) {
+    // Función para configurar checkboxes de tareas
+    async function setupTaskCheckboxes(data) {
     document.querySelectorAll('.task-checkbox').forEach(checkbox => {
         // Salvaguarda para evitar agregar listeners duplicados, lo que podría
         // causar que el evento se dispare múltiples veces por un solo clic.
@@ -1374,7 +1439,7 @@ async function setupTaskCheckboxes(data) {
             const isCompletedNow = e.target.checked;
 
             // Obtener el usuario actual al inicio del handler
-            const user = firebase.auth().currentUser;
+            const user = auth.currentUser;
 
             // Obtener el rol del usuario para verificar permisos
             const userRole = await getCurrentUserRole();
@@ -1467,10 +1532,10 @@ async function setupTaskCheckboxes(data) {
             }
         });
     });
-}
+    }
 
-// Función para actualizar la información de completado de una tarea
-function updateTaskCompletedInfo(taskElement, task) {
+    // Función para actualizar la información de completado de una tarea
+    function updateTaskCompletedInfo(taskElement, task) {
     // Remover información anterior si existe
     const existingInfo = taskElement.querySelector('.task-completed-info');
     if (existingInfo) {
@@ -1484,21 +1549,21 @@ function updateTaskCompletedInfo(taskElement, task) {
         infoDiv.textContent = `✓ Completada por ${task.completedBy} el ${safeDateFormatForDisplay(task.completedAt)} a las ${task.completedTime || '--:--'}`;
         taskElement.appendChild(infoDiv);
     }
-}
+    }
 
-// =========== FUNCIONES AUXILIARES ===========
+    // =========== FUNCIONES AUXILIARES ===========
 
-// Función para sanitizar holidays
-function sanitizeHolidays(holidays) {
+    // Función para sanitizar holidays
+    function sanitizeHolidays(holidays) {
     if (!Array.isArray(holidays)) return [];
     return holidays.filter(h => h && typeof h.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(h.date.trim())).map(h => ({
         date: h.date.trim(),
         name: (h.name || '').trim()
     }));
-}
+    }
 
-// Convierte un string o Date a yyyy-MM-dd para input type=date
-function formatDateForInput(date) {
+    // Convierte un string o Date a yyyy-MM-dd para input type=date
+    function formatDateForInput(date) {
     if (!date) return '';
     if (typeof date === 'string') date = new Date(date);
     if (typeof date.toDate === 'function') date = date.toDate();
@@ -1507,10 +1572,10 @@ function formatDateForInput(date) {
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const day = date.getDate().toString().padStart(2, '0');
     return `${year}-${month}-${day}`;
-}
+    }
 
-// Parsea un string yyyy-MM-dd o Date a Date
-function parseHolidayDate(val) {
+    // Parsea un string yyyy-MM-dd o Date a Date
+    function parseHolidayDate(val) {
     if (!val) return null;
     if (val instanceof Date) return val;
     if (typeof val === 'string') {
@@ -1524,10 +1589,10 @@ function parseHolidayDate(val) {
         if (!isNaN(d.getTime())) return d;
     }
     return null;
-}
+    }
 
-// Verifica si una fecha es día laborable considerando sábados, domingos y holidays
-function isWorkDay(date, options) {
+    // Verifica si una fecha es día laborable considerando sábados, domingos y holidays
+    function isWorkDay(date, options) {
     const { skipSaturday, skipSunday, holidays } = options;
     const day = date.getDay();
 
@@ -1546,16 +1611,16 @@ function isWorkDay(date, options) {
     }
 
     return true;
-}
+    }
 
-// Crea un Date desde un input de tipo date (yyyy-MM-dd)
-function createDateFromInput(dateString) {
+    // Crea un Date desde un input de tipo date (yyyy-MM-dd)
+    function createDateFromInput(dateString) {
     if (!dateString) return null;
     return new Date(dateString + 'T00:00:00');
-}
+    }
 
-// Calcula todas las fechas de tareas del proyecto
-function calculateAllTaskDates(projectData) {
+    // Calcula todas las fechas de tareas del proyecto
+    function calculateAllTaskDates(projectData) {
     const options = projectData.settings;
 
     const shiftStartTime = projectData.shiftStartTime || '09:00';
@@ -1592,10 +1657,10 @@ function calculateAllTaskDates(projectData) {
             lastEndDate = taskEndDate;
         });
     });
-}
+    }
 
-// Mueve una fecha al siguiente momento laborable
-function moveToNextWorkableMoment(date, options) {
+    // Mueve una fecha al siguiente momento laborable
+    function moveToNextWorkableMoment(date, options) {
     // Esta función es crucial para el cálculo de cronogramas.
     // Asegura que cualquier fecha de inicio o fin caiga dentro de un día y hora laborable.
     let newDate = new Date(date);
@@ -1624,10 +1689,10 @@ function moveToNextWorkableMoment(date, options) {
     }
 
     return newDate;
-}
+    }
 
-// Calcula la fecha de fin de una tarea basada en duración y opciones
-function getEndDate(startDate, durationHours, options) {
+    // Calcula la fecha de fin de una tarea basada en duración y opciones
+    function getEndDate(startDate, durationHours, options) {
     // Esta función calcula la fecha de fin de una tarea sumando las horas de duración
     // a la fecha de inicio, pero saltando los tiempos no laborables (noches, fines de semana,
     // festivos y descansos).
@@ -1678,11 +1743,11 @@ function getEndDate(startDate, durationHours, options) {
     }
 
     return currentDate;
-}
+    }
 
     // Variable global para almacenar los datos del proyecto
     let currentProjectData = null;
-    document.addEventListener('DOMContentLoaded', async function() {
+    async function main() {
         const params = new URLSearchParams(window.location.search);
         const projectId = params.get('id');
         const autoDownload = params.get('download');
@@ -1712,4 +1777,7 @@ function getEndDate(startDate, durationHours, options) {
             console.error("Error al cargar el proyecto:", error);
             container.innerHTML = '<h1>Error al cargar el proyecto. Revise la consola.</h1>';
         }
-    });
+    }
+
+    main();
+};

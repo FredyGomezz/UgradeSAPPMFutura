@@ -55,8 +55,13 @@
 
         <div class="timeline-container">
             <div class="project-dates-interactive" id="informacionProyecto">
-                <h3>Datos generales del Proyecto</h3>
-                <div class="project-config">
+                <div class="config-header">
+                    <h3>Datos generales del Proyecto</h3>
+                    <button id="toggle-config-btn" class="toggle-config-btn" aria-label="Contraer o expandir configuración">
+                        <i class="fas fa-chevron-up"></i>
+                    </button>
+                </div>
+                <div class="project-config collapsed" id="project-config-content">
                     <!-- Configuración de Fechas -->
                     <div class="config-group">
                         <h4 class="config-group-title">📅 Configuración de Fechas</h4>
@@ -173,8 +178,13 @@
             </div>
             
             <div class="calendar-section" id="calendarioProyecto">
-                <h2>Calendario del Proyecto</h2>
-                <div id="calendar-container"></div>
+                <div class="section-header">
+                    <h2>Calendario del Proyecto</h2>
+                    <button id="toggle-calendar-btn" class="toggle-section-btn" aria-label="Contraer o expandir calendario">
+                        <i class="fas fa-chevron-up"></i>
+                    </button>
+                </div>
+                <div id="calendar-content-wrapper" class="collapsed"><div id="calendar-container"></div></div>
             </div>
 
             <!-- Modal de tareas del día -->
@@ -259,12 +269,6 @@
     <!-- Lógica de generación de PDF refactorizada -->
     <script src="pdf-generator.js"></script>
 
-    <!-- Configuración centralizada de Firebase -->
-    <script src="firebase-init.js"></script>
-
-    <!-- Servicio de notificaciones -->
-    <script src="notification-service.js?v=1.2"></script>
-
     <!-- Botón flotante de navegación -->
     <div id="floatingNavBtn">
                     <img src="IconoGNCE.png" alt="Menú de navegación" style="width: 24px; height: 24px;">        <div id="floatingNavMenu">
@@ -277,17 +281,31 @@
         </div>
     </div>
 
-    <script src="vistaProyecto.js"></script>
-
     <script>
         /**
          * Este script unifica la lógica de las métricas de la Curva S en la vista del proyecto.
          * Utiliza ReportDataBuilder como la única fuente de verdad para los cálculos,
          * asegurando que las métricas mostradas en la página sean idénticas a las del PDF.
          */
-        document.addEventListener('DOMContentLoaded', () => {
-            // La función `updateSCurveMetrics` se llamará desde vistaProyecto.js cuando los datos estén listos.
-            // La exponemos globalmente para que sea accesible.
+
+        function initializeApp(firebaseApp) {
+            // Definimos auth y db para que estén disponibles en el ámbito de esta función
+            const auth = firebaseApp.auth();
+            const db = firebaseApp.firestore();
+
+            // Inicializamos el servicio de notificaciones con la instancia de db
+            const notificationService = initializeNotificationService(db);
+            
+            // Ahora que db y auth están definidos, cargamos el script principal de la página.
+            const projectScript = document.createElement('script');
+            projectScript.src = 'vistaProyecto.js';
+            projectScript.onload = () => {
+                // Una vez cargado, inicializamos la lógica de la página
+                window.initializeProjectView(db, auth, notificationService);
+            };
+            document.body.appendChild(projectScript);
+
+            // La exponemos globalmente para que sea accesible desde vistaProyecto.js
             window.updateSCurveMetrics = (projectData) => {
                 if (!projectData || typeof ReportDataBuilder === 'undefined') {
                     console.error("ReportDataBuilder no está disponible o no hay datos del proyecto.");
@@ -301,7 +319,19 @@
                 document.getElementById('performance-index').textContent = metrics.performanceIndex || '--';
                 document.getElementById('project-status').textContent = metrics.projectStatus || '--';
             };
-        });
+        }
+
+        // Carga dinámica de firebase-init.js y ejecución del callback
+        // Primero cargamos el servicio de notificaciones que es una dependencia
+        const notificationScript = document.createElement('script');
+        notificationScript.src = 'notification-service.js?v=1.2';
+        notificationScript.onload = () => {
+            const firebaseScript = document.createElement('script');
+            firebaseScript.src = 'firebase-init.js';
+            firebaseScript.onload = () => initializeFirebaseApp(initializeApp);
+            document.head.appendChild(firebaseScript);
+        };
+        document.head.appendChild(notificationScript);
     </script>
 </body>
 </html>
